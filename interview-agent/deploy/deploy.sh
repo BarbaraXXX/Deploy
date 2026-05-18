@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+ENV_FILE="$PROJECT_DIR/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo "Error: .env not found at $ENV_FILE"
+    echo "Copy .env.example to .env and fill in your configuration."
+    exit 1
+fi
+
+source "$ENV_FILE"
+
+if [ -z "${SSL_DOMAIN:-}" ]; then
+    echo "Error: SSL_DOMAIN not set in .env"
+    exit 1
+fi
+
+if [ -z "${AUTH_SECRET_KEY:-}" ] || [ "$AUTH_SECRET_KEY" = "change-me-in-production" ]; then
+    echo "Error: AUTH_SECRET_KEY must be changed from default in .env"
+    exit 1
+fi
+
+NGINX_CONF="$SCRIPT_DIR/nginx/nginx.conf"
+NGINX_RESOLVED="$SCRIPT_DIR/nginx/nginx.resolved.conf"
+
+envsubst '$SSL_DOMAIN' < "$NGINX_CONF" > "$NGINX_RESOLVED"
+
+CERT_DIR="$PROJECT_DIR/data/certbot/conf/live/$SSL_DOMAIN"
+FIRST_TIME=false
+
+if [ ! -d "$CERT_DIR" ]; then
+    FIRST_TIME=true
+    echo "=== First-time setup: obtaining SSL certificate ==="
+    echo "Domain: $SSL_DOMAIN"
+    echo ""
+
+    # Use HTTP-only config first to get cert
+    cat > "$NGINX_RESOLVED" << 'NGINX_HTTP'
+events {
+    worker_connections 1024;
+}
+
+http {
+    server {
+        listen 80;
+        server_name _;
+
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        location / {
+            proxy_pass http://app:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+NGINX_HTTP
+
+    cd "$SCRIPT_DIR"
+    docker compose up -d nginx app
+    sleep 5
+
+    docker compose run --rm certbot certbot certonly \
+        --webroot \
+        --webroot-path /var/www/certbot \
+        -d "$SSL_DOMAIN" \
+        --email "${SSL_EMAIL:-admin@${SSL_DOMAIN}}" \
+        --agree-tos \
+        --no-eff-email
+
+    # Now regenerate the full HTTPS config
+    envsubst '$SSL_DOMAIN' < "$NGINX_CONF" > "$NGINX_RESOLVED"
+fi
+
+echo "=== Starting services ==="
+cd "$SCRIPT_DIR"
+docker compose up -d --build
+
+echo ""
+echo "=== Done ==="
+echo "App is running at https://$SSL_DOMAIN"
+echo ""
+echo "Useful commands:"
+echo "  docker compose -f $SCRIPT_DIR/docker-compose.yml logs -f app    # View logs"
+echo "  docker compose -f $SCRIPT_DIR/docker-compose.yml down           # Stop"
+echo "  docker compose -f $SCRIPT_DIR/docker-compose.yml up -d --build  # Rebuild & restart"
