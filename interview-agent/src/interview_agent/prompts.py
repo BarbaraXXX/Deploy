@@ -61,7 +61,8 @@ BASE_PROMPT = (
 def build_system_prompt(domain: str, difficulty: str) -> str:
     domain_desc = PRESET_DOMAINS.get(domain)
     if not domain_desc:
-        domain_desc = f"你专注于{domain}领域的技术面试，针对该领域的技术栈和知识点进行深入考察。"
+        safe_domain = domain[:32].replace("{", "").replace("}", "").replace("\n", " ")
+        domain_desc = f"你专注于{safe_domain}领域的技术面试，针对该领域的技术栈和知识点进行深入考察。"
 
     difficulty_desc = DIFFICULTY_PROMPTS.get(difficulty, DIFFICULTY_PROMPTS["mid"])
 

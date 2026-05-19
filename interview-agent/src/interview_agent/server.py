@@ -1,11 +1,14 @@
 import json
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from interview_agent.auth import authenticate, get_current_user, register
 from interview_agent.config import llm_settings
@@ -14,17 +17,19 @@ from interview_agent.session import session_manager
 
 _STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "web" / "dist"
 
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 app = FastAPI(title="Interview Agent")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
-
-# --- Auth ---
+_MAX_MESSAGE_LEN = 4000
 
 
 class RegisterRequest(BaseModel):
@@ -38,9 +43,12 @@ class LoginRequest(BaseModel):
 
 
 @app.post("/api/auth/register")
-async def api_register(req: RegisterRequest) -> dict:
-    if len(req.username) < 2 or len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Username too short or password too weak")
+@limiter.limit("5/minute")
+async def api_register(request: Request, req: RegisterRequest) -> dict:
+    if len(req.username) < 2 or len(req.username) > 32:
+        raise HTTPException(status_code=400, detail="Username must be 2-32 characters")
+    if len(req.password) < 6:
+        raise HTTPException(status_code=400, detail="Password too short")
     try:
         register(req.username, req.password)
     except ValueError as e:
@@ -50,7 +58,8 @@ async def api_register(req: RegisterRequest) -> dict:
 
 
 @app.post("/api/auth/login")
-async def api_login(req: LoginRequest) -> dict:
+@limiter.limit("10/minute")
+async def api_login(request: Request, req: LoginRequest) -> dict:
     try:
         token = authenticate(req.username, req.password)
     except ValueError:
@@ -61,9 +70,6 @@ async def api_login(req: LoginRequest) -> dict:
 @app.get("/api/auth/me")
 async def api_me(username: str = Depends(get_current_user)) -> dict:
     return {"username": username}
-
-
-# --- Interview ---
 
 
 class CreateSessionRequest(BaseModel):
@@ -94,12 +100,17 @@ async def list_providers(username: str = Depends(get_current_user)) -> dict:
 async def create_session(
     req: CreateSessionRequest, username: str = Depends(get_current_user)
 ) -> dict:
+    if len(req.domain) > 64:
+        raise HTTPException(status_code=400, detail="Domain name too long")
     session_id = await session_manager.create(req.domain, req.difficulty, username)
     return {"session_id": session_id}
 
 
 @app.post("/api/chat/stream")
 async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user)):
+    if len(req.message) > _MAX_MESSAGE_LEN:
+        raise HTTPException(status_code=400, detail="Message too long")
+
     session = session_manager.get(req.session_id, username)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -142,9 +153,6 @@ async def delete_session(
     return {"ok": True}
 
 
-# --- Static ---
-
-
 if _STATIC_DIR.is_dir():
     from fastapi.staticfiles import StaticFiles
 
@@ -152,7 +160,9 @@ if _STATIC_DIR.is_dir():
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
-        file_path = _STATIC_DIR / full_path
+        file_path = (_STATIC_DIR / full_path).resolve()
+        if not str(file_path).startswith(str(_STATIC_DIR.resolve())):
+            raise HTTPException(status_code=404)
         if file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(_STATIC_DIR / "index.html")
