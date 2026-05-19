@@ -8,6 +8,11 @@ services:
       - ../data:/app/data
     expose:
       - "8000"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
 
   nginx:
     image: nginx:alpine
