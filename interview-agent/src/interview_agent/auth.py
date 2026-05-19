@@ -1,9 +1,8 @@
-import hashlib
 import json
-import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -26,27 +25,20 @@ def _save_users(users: dict[str, dict]) -> None:
     _DB_PATH.write_text(json.dumps(users, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _hash_password(password: str, salt: str) -> str:
-    return hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
-
-
 def register(username: str, password: str) -> str:
     users = _load_users()
     if username in users:
         raise ValueError("Username already exists")
-    salt = uuid.uuid4().hex
-    users[username] = {
-        "salt": salt,
-        "password_hash": _hash_password(password, salt),
-    }
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+    users[username] = {"password_hash": hashed}
     _save_users(users)
     return username
 
 
 def authenticate(username: str, password: str) -> str:
     users = _load_users()
-    user = users.get(username)
-    if user is None or user["password_hash"] != _hash_password(password, user["salt"]):
+    stored = users.get(username, {}).get("password_hash", "")
+    if not stored or not bcrypt.checkpw(password.encode(), stored.encode()):
         raise ValueError("Invalid credentials")
     return _create_token(username)
 

@@ -16,6 +16,8 @@ dependencies = [
     "uvicorn>=0.30.0",
     "sse-starlette>=2.0.0",
     "pyjwt>=2.0.0",
+    "bcrypt>=5.0.0",
+    "slowapi",
 ]
 
 [project.scripts]
