@@ -1,0 +1,21 @@
+# Shared
+.env
+data/
+.DS_Store
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# interview-agent
+interview-agent/.venv/
+interview-agent/web/dist/
+interview-agent/web/node_modules/
+
+# interview-vectordb
+interview-vectordb/.venv/

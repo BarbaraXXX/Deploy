@@ -1,0 +1,91 @@
+import json
+import sys
+from pathlib import Path
+
+from interview_vectordb.db import ProfileDB
+from interview_vectordb.schema import InterviewExperience
+
+
+def _load_json(path: Path) -> list[dict]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _import_path(path: Path) -> None:
+    if not path.exists():
+        print(f"Path not found: {path}")
+        return
+    if path.is_file() and path.suffix == ".json":
+        _import_file(path)
+    elif path.is_dir():
+        for f in sorted(path.glob("*.json")):
+            _import_file(f)
+    else:
+        print(f"Unsupported path: {path}")
+
+
+def _import_file(path: Path) -> None:
+    db = ProfileDB()
+    data = _load_json(path)
+    if isinstance(data, dict):
+        data = [data]
+    exps = [InterviewExperience(**e) for e in data]
+    ids = db.add_experiences(exps)
+    print(f"Imported {len(ids)} experiences from {path.name}")
+
+
+def _start_server() -> None:
+    import uvicorn
+
+    from interview_vectordb.api import api_app
+    from interview_vectordb.config import mcp_server_settings
+    from interview_vectordb.server import mcp
+
+    mcp_app = mcp.streamable_http_app()
+    api_app.mount("/mcp", mcp_app)
+    uvicorn.run(api_app, host="0.0.0.0", port=mcp_server_settings.port)
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        _start_server()
+        return
+
+    cmd = sys.argv[1]
+
+    if cmd == "import":
+        if len(sys.argv) < 3:
+            print("Usage: interview-vectordb import <path>")
+            sys.exit(1)
+        _import_path(Path(sys.argv[2]))
+
+    elif cmd == "profile":
+        if len(sys.argv) < 4:
+            print("Usage: interview-vectordb profile <company> <position>")
+            sys.exit(1)
+        db = ProfileDB()
+        company, position = sys.argv[2], sys.argv[3]
+        profile = db.get_or_generate_profile(company, position)
+        print(json.dumps(profile.model_dump(), ensure_ascii=False, indent=2))
+
+    elif cmd == "list":
+        db = ProfileDB()
+        profiles = db.list_profiles()
+        print(json.dumps([p.model_dump() for p in profiles], ensure_ascii=False, indent=2))
+
+    elif cmd == "serve":
+        _start_server()
+
+    elif cmd == "regen":
+        db = ProfileDB()
+        results = db.batch_generate_profiles()
+        print(f"Generated {len(results)} profiles")
+        for key, profile in results.items():
+            print(f"  {key}: {profile.difficulty_tendency}")
+
+    else:
+        print(f"Unknown command: {cmd}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
