@@ -55,11 +55,26 @@ export async function fetchDomains(): Promise<string[]> {
   return data.presets;
 }
 
-export async function createSession(domain: string, difficulty: string, jobDescription: string = ''): Promise<string> {
+export async function fetchProfiles(): Promise<{key: string; company: string; position: string; source_count: number}[]> {
+  const res = await fetch(`${API_BASE}/profiles`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.profiles || [];
+}
+
+export async function createSession(domain: string, difficulty: string, jobDescription: string = '', profileCompany: string = '', profilePosition: string = ''): Promise<string> {
   const res = await fetch(`${API_BASE}/sessions`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ domain, difficulty, job_description: jobDescription }),
+    body: JSON.stringify({
+      domain,
+      difficulty,
+      job_description: jobDescription,
+      profile_company: profileCompany,
+      profile_position: profilePosition,
+    }),
   });
   if (res.status === 401) {
     setToken(null);

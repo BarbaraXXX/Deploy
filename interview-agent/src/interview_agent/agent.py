@@ -35,12 +35,12 @@ def _should_continue(state: MessagesState) -> Literal["tools", END]:
 
 
 async def build_interview_agent(
-    domain: str, difficulty: str, structured_jd: str = "", provider_name: str | None = None
+    domain: str, difficulty: str, structured_jd: str = "", structured_profile: str = "", provider_name: str | None = None
 ) -> Runnable:
     provider = llm_settings.get_provider(provider_name)
     tools = await get_mcp_tools()
     llm = _create_llm(tools, provider)
-    system_prompt = build_system_prompt(domain, difficulty, structured_jd)
+    system_prompt = build_system_prompt(domain, difficulty, structured_jd, structured_profile)
 
     graph = StateGraph(MessagesState)
 

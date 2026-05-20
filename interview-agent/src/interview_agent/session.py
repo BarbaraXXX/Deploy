@@ -13,13 +13,14 @@ _SESSION_TTL_SECONDS = 3600
 
 class InterviewSession:
     def __init__(
-        self, agent: object, domain: str, difficulty: str, username: str, structured_jd: str = ""
+        self, agent: object, domain: str, difficulty: str, username: str, structured_jd: str = "", structured_profile: str = ""
     ) -> None:
         self.agent = agent
         self.domain = domain
         self.difficulty = difficulty
         self.username = username
         self.structured_jd = structured_jd
+        self.structured_profile = structured_profile
         self.messages: list[BaseMessage] = []
         self.created_at: float = time.monotonic()
 
@@ -41,16 +42,16 @@ class SessionManager:
             del self._sessions[sid]
 
     async def create(
-        self, domain: str, difficulty: str, username: str, structured_jd: str = ""
+        self, domain: str, difficulty: str, username: str, structured_jd: str = "", structured_profile: str = ""
     ) -> str:
         self._evict_expired()
         if len(self._sessions) >= _MAX_SESSIONS:
             self._sessions.popitem(last=False)
 
-        agent = await build_interview_agent(domain, difficulty, structured_jd)
+        agent = await build_interview_agent(domain, difficulty, structured_jd, structured_profile)
         session_id = uuid.uuid4().hex
         self._sessions[session_id] = InterviewSession(
-            agent, domain, difficulty, username, structured_jd
+            agent, domain, difficulty, username, structured_jd, structured_profile
         )
         return session_id
 

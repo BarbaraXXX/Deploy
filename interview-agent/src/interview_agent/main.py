@@ -9,7 +9,8 @@ from interview_agent.prompts import PRESET_DOMAINS
 
 async def run() -> None:
     print("=== 模拟技术面试 ===")
-    print(f"模型: {llm_settings.model} @ {llm_settings.base_url}")
+    provider = llm_settings.get_provider()
+    print(f"模型: {provider.model} @ {provider.base_url}")
 
     if mcp_settings.server_urls:
         print(f"MCP 服务器: {mcp_settings.server_urls}")

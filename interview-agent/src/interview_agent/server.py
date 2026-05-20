@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
@@ -11,7 +12,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from interview_agent.auth import authenticate, get_current_user, register
-from interview_agent.config import llm_settings
+from interview_agent.config import llm_settings, vectordb_settings
 from interview_agent.prompts import PRESET_DOMAINS
 from interview_agent.session import session_manager
 
@@ -76,6 +77,15 @@ class CreateSessionRequest(BaseModel):
     domain: str
     difficulty: str = "mid"
     job_description: str = ""
+    profile_company: str = ""
+    profile_position: str = ""
+
+
+def _sanitize_path_segment(value: str) -> str:
+    stripped = value.strip()
+    if ".." in stripped or "/" in stripped or "\\" in stripped:
+        return ""
+    return stripped[:128]
 
 
 class ChatRequest(BaseModel):
@@ -113,6 +123,69 @@ def _format_jd(jd: object) -> str:
     return "\n".join(parts)
 
 
+_MAX_PROFILE_FIELD_LEN = 200
+
+
+def _format_profile(profile_data: dict) -> str:
+    parts: list[str] = []
+    company = profile_data.get("company", "")
+    position = profile_data.get("position", "")
+    if company and position:
+        parts.append(f"公司：{company} / 岗位：{position}")
+
+    diff = profile_data.get("difficulty_tendency", "")
+    if diff:
+        diff_labels = {"junior": "初级", "mid": "中级", "senior": "高级"}
+        parts.append(f"难度倾向：{diff_labels.get(diff, diff)}")
+
+    focus = profile_data.get("focus_areas", [])
+    if focus:
+        parts.append(f"考查重点：{', '.join(str(f)[:_MAX_PROFILE_FIELD_LEN] for f in focus[:10])}")
+
+    style = profile_data.get("interview_style", "")
+    if style:
+        parts.append(f"面试风格：{style[:500]}")
+
+    qtypes = profile_data.get("question_types", [])
+    if qtypes:
+        parts.append(f"常见问题类型：{', '.join(str(t)[:_MAX_PROFILE_FIELD_LEN] for t in qtypes[:10])}")
+
+    traits = profile_data.get("key_traits", [])
+    if traits:
+        parts.append(f"区分性特征：{', '.join(str(t)[:_MAX_PROFILE_FIELD_LEN] for t in traits[:10])}")
+
+    source_count = profile_data.get("source_count", 0)
+    if source_count:
+        parts.append(f"（基于{source_count}份面经分析）")
+
+    return "\n".join(parts)
+
+
+async def _fetch_profile(company: str, position: str) -> str:
+    safe_company = _sanitize_path_segment(company)
+    safe_position = _sanitize_path_segment(position)
+    if not safe_company or not safe_position:
+        return ""
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=5.0),
+            limits=httpx.Limits(max_connections=20),
+            follow_redirects=False,
+        ) as client:
+            from urllib.parse import quote
+            resp = await client.get(
+                f"{vectordb_settings.base_url}/api/profiles/{quote(safe_company, safe='')}/{quote(safe_position, safe='')}"
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if not isinstance(data, dict):
+                    return ""
+                return _format_profile(data)
+    except Exception:
+        pass
+    return ""
+
+
 @app.get("/api/domains")
 async def list_domains() -> dict:
     return {"presets": list(PRESET_DOMAINS.keys())}
@@ -127,6 +200,20 @@ async def list_providers(username: str = Depends(get_current_user)) -> dict:
     }
 
 
+@app.get("/api/profiles")
+async def list_profiles(username: str = Depends(get_current_user)) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{vectordb_settings.base_url}/api/profiles")
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        pass
+    return {"profiles": []}
+
+
+_MAX_PROFILE_SIZE = 2000
+
 @app.post("/api/sessions")
 async def create_session(
     req: CreateSessionRequest, username: str = Depends(get_current_user)
@@ -135,6 +222,8 @@ async def create_session(
         raise HTTPException(status_code=400, detail="Domain name too long")
     if len(req.job_description) > 4000:
         raise HTTPException(status_code=400, detail="Job description too long")
+    if len(req.profile_company) > 128 or len(req.profile_position) > 128:
+        raise HTTPException(status_code=400, detail="Profile company/position too long")
 
     structured_jd = ""
     if req.job_description.strip():
@@ -145,7 +234,13 @@ async def create_session(
         if result:
             structured_jd = _format_jd(result)
 
-    session_id = await session_manager.create(req.domain, req.difficulty, username, structured_jd)
+    structured_profile = ""
+    if req.profile_company and req.profile_position:
+        structured_profile = await _fetch_profile(req.profile_company, req.profile_position)
+    if len(structured_profile) > _MAX_PROFILE_SIZE:
+        structured_profile = structured_profile[:_MAX_PROFILE_SIZE] + "\n[truncated]"
+
+    session_id = await session_manager.create(req.domain, req.difficulty, username, structured_jd, structured_profile)
     return {"session_id": session_id}
 
 
@@ -207,8 +302,14 @@ if _STATIC_DIR.is_dir():
         if not str(file_path).startswith(str(_STATIC_DIR.resolve())):
             raise HTTPException(status_code=404)
         if file_path.is_file():
-            return FileResponse(file_path)
-        return FileResponse(_STATIC_DIR / "index.html")
+            headers = {}
+            if file_path.name == "index.html":
+                headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return FileResponse(file_path, headers=headers)
+        return FileResponse(
+            _STATIC_DIR / "index.html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
 
 
 def run() -> None:

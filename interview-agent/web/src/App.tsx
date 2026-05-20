@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { fetchDomains, createSession, streamChat, getToken, setToken, login, register } from './api';
+import { fetchDomains, createSession, fetchProfiles, streamChat, getToken, setToken, login, register } from './api';
 
 type View = 'login' | 'setup' | 'chat';
 
@@ -117,7 +117,7 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
 }
 
 function SetupView({ onStart, username, onLogout }: {
-  onStart: (domain: string, difficulty: string, jobDescription: string) => void;
+  onStart: (domain: string, difficulty: string, jobDescription: string, profileCompany: string, profilePosition: string) => void;
   username: string;
   onLogout: () => void;
 }) {
@@ -126,10 +126,18 @@ function SetupView({ onStart, username, onLogout }: {
   const [customDomain, setCustomDomain] = useState('');
   const [difficulty, setDifficulty] = useState('mid');
   const [jobDescription, setJobDescription] = useState('');
+  const [profiles, setProfiles] = useState<{key: string; company: string; position: string; source_count: number}[]>([]);
+  const [selectedProfileIdx, setSelectedProfileIdx] = useState(-1);
+  const [customCompany, setCustomCompany] = useState('');
+  const [customPosition, setCustomPosition] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchDomains().then(setDomains).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchProfiles().then(setProfiles).catch(() => {});
   }, []);
 
   const activeDomain = customDomain || selectedDomain;
@@ -137,7 +145,16 @@ function SetupView({ onStart, username, onLogout }: {
   const handleStart = () => {
     if (!activeDomain || !difficulty) return;
     setLoading(true);
-    onStart(activeDomain, difficulty, jobDescription);
+    let profileCompany = '';
+    let profilePosition = '';
+    if (selectedProfileIdx === -2) {
+      profileCompany = customCompany;
+      profilePosition = customPosition;
+    } else if (selectedProfileIdx >= 0 && profiles[selectedProfileIdx]) {
+      profileCompany = profiles[selectedProfileIdx].company;
+      profilePosition = profiles[selectedProfileIdx].position;
+    }
+    onStart(activeDomain, difficulty, jobDescription, profileCompany, profilePosition);
   };
 
   return (
@@ -207,6 +224,41 @@ function SetupView({ onStart, username, onLogout }: {
             onChange={(e) => setJobDescription(e.target.value)}
             rows={4}
           />
+        </div>
+
+        <div className="setup-section">
+          <label className="section-label">面试偏好（可选）</label>
+          <select
+            className="custom-input profile-select"
+            value={selectedProfileIdx}
+            onChange={(e) => { setSelectedProfileIdx(Number(e.target.value)); setCustomCompany(''); setCustomPosition(''); }}
+          >
+            <option value={-1}>无</option>
+            {profiles.map((p, i) => (
+              <option key={p.key} value={i}>
+                {p.company} - {p.position}（{p.source_count}份面经）
+              </option>
+            ))}
+            <option value={-2}>手动输入...</option>
+          </select>
+          {selectedProfileIdx === -2 && (
+            <div className="custom-profile-inputs">
+              <input
+                type="text"
+                className="custom-input"
+                placeholder="公司名称"
+                value={customCompany}
+                onChange={(e) => setCustomCompany(e.target.value)}
+              />
+              <input
+                type="text"
+                className="custom-input"
+                placeholder="岗位名称"
+                value={customPosition}
+                onChange={(e) => setCustomPosition(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
         <button
@@ -382,9 +434,9 @@ function App() {
     setView('login');
   };
 
-  const handleStart = async (d: string, diff: string, jd: string) => {
+  const handleStart = async (d: string, diff: string, jd: string, profileCompany: string, profilePosition: string) => {
     try {
-      const sid = await createSession(d, diff, jd);
+      const sid = await createSession(d, diff, jd, profileCompany, profilePosition);
       setSessionId(sid);
       setDomain(d);
       setDifficulty(diff);

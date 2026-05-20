@@ -80,6 +80,18 @@ class AuthSettings(BaseSettings):
     token_expire_hours: int = 24
 
 
+class VectorDBSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="VECTORDB_",
+        env_file=str(_ENV_FILE),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    base_url: str = "http://localhost:9000"
+
+
 llm_settings = LLMSettings()
 mcp_settings = MCPSettings()
 auth_settings = AuthSettings()
+vectordb_settings = VectorDBSettings()
