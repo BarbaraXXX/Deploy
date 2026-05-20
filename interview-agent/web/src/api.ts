@@ -55,11 +55,11 @@ export async function fetchDomains(): Promise<string[]> {
   return data.presets;
 }
 
-export async function createSession(domain: string, difficulty: string): Promise<string> {
+export async function createSession(domain: string, difficulty: string, jobDescription: string = ''): Promise<string> {
   const res = await fetch(`${API_BASE}/sessions`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ domain, difficulty }),
+    body: JSON.stringify({ domain, difficulty, job_description: jobDescription }),
   });
   if (res.status === 401) {
     setToken(null);

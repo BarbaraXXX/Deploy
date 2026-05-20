@@ -17,6 +17,7 @@ def _create_llm(tools: list, provider: LLMProviderConfig) -> ChatOpenAI:
         api_key=provider.api_key,
         model=provider.model,
         temperature=0.7,
+        #temprature 0.7过大，但由于当前可参考数据少，如果temprature太低，每次面试都会显得一样；
     )
     if tools:
         llm = llm.bind_tools(tools)
@@ -34,12 +35,12 @@ def _should_continue(state: MessagesState) -> Literal["tools", END]:
 
 
 async def build_interview_agent(
-    domain: str, difficulty: str, provider_name: str | None = None
+    domain: str, difficulty: str, structured_jd: str = "", provider_name: str | None = None
 ) -> Runnable:
     provider = llm_settings.get_provider(provider_name)
     tools = await get_mcp_tools()
     llm = _create_llm(tools, provider)
-    system_prompt = build_system_prompt(domain, difficulty)
+    system_prompt = build_system_prompt(domain, difficulty, structured_jd)
 
     graph = StateGraph(MessagesState)
 

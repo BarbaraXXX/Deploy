@@ -117,7 +117,7 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
 }
 
 function SetupView({ onStart, username, onLogout }: {
-  onStart: (domain: string, difficulty: string) => void;
+  onStart: (domain: string, difficulty: string, jobDescription: string) => void;
   username: string;
   onLogout: () => void;
 }) {
@@ -125,6 +125,7 @@ function SetupView({ onStart, username, onLogout }: {
   const [selectedDomain, setSelectedDomain] = useState('');
   const [customDomain, setCustomDomain] = useState('');
   const [difficulty, setDifficulty] = useState('mid');
+  const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -136,7 +137,7 @@ function SetupView({ onStart, username, onLogout }: {
   const handleStart = () => {
     if (!activeDomain || !difficulty) return;
     setLoading(true);
-    onStart(activeDomain, difficulty);
+    onStart(activeDomain, difficulty, jobDescription);
   };
 
   return (
@@ -195,6 +196,17 @@ function SetupView({ onStart, username, onLogout }: {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="setup-section">
+          <label className="section-label">岗位JD（可选）</label>
+          <textarea
+            className="custom-input jd-textarea"
+            placeholder="粘贴岗位JD，AI将根据JD调整面试侧重点..."
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            rows={4}
+          />
         </div>
 
         <button
@@ -370,9 +382,9 @@ function App() {
     setView('login');
   };
 
-  const handleStart = async (d: string, diff: string) => {
+  const handleStart = async (d: string, diff: string, jd: string) => {
     try {
-      const sid = await createSession(d, diff);
+      const sid = await createSession(d, diff, jd);
       setSessionId(sid);
       setDomain(d);
       setDifficulty(diff);

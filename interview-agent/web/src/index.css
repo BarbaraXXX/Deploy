@@ -250,6 +250,14 @@ body {
   outline-offset: 2px;
 }
 
+.jd-textarea {
+  min-height: 100px;
+  max-height: 200px;
+  resize: vertical;
+  line-height: 1.5;
+  font-size: 0.8125rem;
+}
+
 .start-button {
   width: 100%;
   padding: var(--space-3) var(--space-4);

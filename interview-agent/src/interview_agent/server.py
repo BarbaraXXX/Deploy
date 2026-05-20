@@ -75,11 +75,42 @@ async def api_me(username: str = Depends(get_current_user)) -> dict:
 class CreateSessionRequest(BaseModel):
     domain: str
     difficulty: str = "mid"
+    job_description: str = ""
 
 
 class ChatRequest(BaseModel):
     session_id: str
     message: str
+
+
+_MAX_JD_FIELD_LEN = 200
+_MAX_JD_ITEMS = 10
+
+
+def _format_jd(jd: object) -> str:
+    parts: list[str] = []
+    if v := getattr(jd, "position_title", ""):
+        parts.append(f"岗位：{v[:_MAX_JD_FIELD_LEN]}")
+    if v := getattr(jd, "required_experience", ""):
+        parts.append(f"经验要求：{v[:_MAX_JD_FIELD_LEN]}")
+    skills = getattr(jd, "required_skills", [])[:_MAX_JD_ITEMS]
+    if skills:
+        parts.append(f"必需技能：{', '.join(s[:_MAX_JD_FIELD_LEN] for s in skills)}")
+    stack = getattr(jd, "tech_stack", [])[:_MAX_JD_ITEMS]
+    if stack:
+        parts.append(f"技术栈：{', '.join(s[:_MAX_JD_FIELD_LEN] for s in stack)}")
+    responsibilities = getattr(jd, "key_responsibilities", [])[:_MAX_JD_ITEMS]
+    if responsibilities:
+        items = "\n".join(f"  - {r[:_MAX_JD_FIELD_LEN]}" for r in responsibilities)
+        parts.append(f"核心职责：\n{items}")
+    preferred = getattr(jd, "preferred_qualifications", [])[:_MAX_JD_ITEMS]
+    if preferred:
+        items = "\n".join(f"  - {q[:_MAX_JD_FIELD_LEN]}" for q in preferred)
+        parts.append(f"加分项：\n{items}")
+    focus = getattr(jd, "interview_focus", "")
+    if focus:
+        parts.append(f"面试侧重：{focus[:_MAX_JD_FIELD_LEN]}")
+    return "\n".join(parts)
 
 
 @app.get("/api/domains")
@@ -102,7 +133,19 @@ async def create_session(
 ) -> dict:
     if len(req.domain) > 64:
         raise HTTPException(status_code=400, detail="Domain name too long")
-    session_id = await session_manager.create(req.domain, req.difficulty, username)
+    if len(req.job_description) > 4000:
+        raise HTTPException(status_code=400, detail="Job description too long")
+
+    structured_jd = ""
+    if req.job_description.strip():
+        from interview_agent.jd_parser import parse_jd
+
+        provider = llm_settings.get_provider()
+        result = await parse_jd(req.job_description.strip(), provider)
+        if result:
+            structured_jd = _format_jd(result)
+
+    session_id = await session_manager.create(req.domain, req.difficulty, username, structured_jd)
     return {"session_id": session_id}
 
 
