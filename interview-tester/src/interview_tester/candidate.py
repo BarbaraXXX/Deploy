@@ -5,9 +5,29 @@ from interview_agent.config import llm_settings
 
 from .config import test_settings
 
+_VALID_STYLES = {"cooperative", "weak", "evasive", "overconfident", "specific_weakness"}
 
-def build_candidate_llm(candidate_level: str) -> ChatOpenAI:
-    provider = llm_settings.get_provider()
+_STYLE_PROMPTS: dict[str, str] = {
+    "weak": (
+        "你的回答应该刻意表现得比较薄弱：回答浅显、不够完整，遇到深入问题时含糊其辞，"
+        "对复杂概念理解表面化。偶尔会说'这个我不太确定'或'这个我没有深入研究过'。"
+        "注意不要完全不回答，而是给出质量较低的回答。"
+    ),
+    "evasive": (
+        "你的回答风格是回避正题：经常绕弯子不直接回答问题，试图用模糊的表述蒙混过关，"
+        "喜欢转移话题到自己熟悉的领域。比如面试官问A，你会先说一些相关但不是核心的内容，"
+        "然后试图把话题引向B。"
+    ),
+    "overconfident": (
+        "你是一个非常自信的候选人，甚至有些过度自信：对不确定的内容也会很自信地给出错误答案，"
+        "夸大自己的项目经验和能力，经常说'这个我很熟悉'但实际回答可能有错误。"
+        "不要故意给完全无关的答案，而是给出听起来合理但实际有错误的回答。"
+    ),
+}
+
+
+def build_candidate_llm(candidate_level: str, provider_name: str = "") -> ChatOpenAI:
+    provider = llm_settings.get_provider(provider_name) if provider_name else llm_settings.get_provider()
     return ChatOpenAI(
         base_url=provider.base_url,
         api_key=provider.api_key,
@@ -16,7 +36,18 @@ def build_candidate_llm(candidate_level: str) -> ChatOpenAI:
     )
 
 
-def get_candidate_system_prompt(domain: str, candidate_level: str) -> str:
+def get_candidate_system_prompt(
+    domain: str,
+    candidate_level: str,
+    candidate_style: str = "cooperative",
+    candidate_weaknesses: list[str] | None = None,
+) -> str:
+    # Fallback: unknown style or specific_weakness without weaknesses → cooperative
+    if candidate_style not in _VALID_STYLES:
+        candidate_style = "cooperative"
+    if candidate_style == "specific_weakness" and not candidate_weaknesses:
+        candidate_style = "cooperative"
+
     level_map = {
         "junior": "1-3年",
         "mid": "3-5年",
@@ -40,16 +71,34 @@ def get_candidate_system_prompt(domain: str, candidate_level: str) -> str:
     }
     guidance = level_guidance.get(candidate_level, level_guidance["mid"])
 
-    return (
-        f"你是一名正在参加{domain}领域技术面试的候选人，拥有{experience}工作经验。\n\n"
-        f"{guidance}\n\n"
-        "面试规则：\n"
+    style_prompt = ""
+    if candidate_style == "specific_weakness" and candidate_weaknesses:
+        weaknesses_str = "、".join(candidate_weaknesses)
+        style_prompt = (
+            "你在大部分领域表现正常，但在特定领域有明显弱点。"
+            f"以下是你不擅长的领域：{weaknesses_str}。"
+            "当面试官问及这些领域时，你的回答应该表现出明显的不确定、理解浅薄或含糊不清。"
+            "其他领域则正常回答。"
+        )
+    elif candidate_style in _STYLE_PROMPTS:
+        style_prompt = _STYLE_PROMPTS[candidate_style]
+
+    parts = [
+        f"你是一名正在参加{domain}领域技术面试的候选人，拥有{experience}工作经验。\n",
+        guidance,
+    ]
+    if style_prompt:
+        parts.append(style_prompt)
+    parts.append(
+        "\n面试规则：\n"
         "- 以自然的方式回答面试官的问题，像一个真实的候选人\n"
         "- 保持角色，永远不要打破模拟，不要提及自己是AI或语言模型\n"
         "- 不要反问面试官问题，只回答并等待下一个问题\n"
         "- 回答的深度和广度应该符合你的经验水平\n"
         f"- 你面试的领域是{domain}，请展示该领域的相关技术知识\n"
     )
+
+    return "\n\n".join(parts)
 
 
 async def generate_candidate_response(
