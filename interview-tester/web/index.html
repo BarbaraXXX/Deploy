@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Tester</title>
+<style>
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--color-bg:#0f1117;--color-surface:#1a1c25;--color-surface-raised:#22252f;--color-surface-hover:#2a2d38;--color-border:#2e3140;--color-border-subtle:#252836;--color-text:#e4e5eb;--color-text-secondary:#9499ad;--color-text-tertiary:#5f6380;--color-accent:#f59e0b;--color-accent-dim:rgba(245,158,11,.12);--color-accent-border:rgba(245,158,11,.35);--color-interviewer:#2dd4a8;--color-candidate:#60a5fa;--color-interviewer-dim:rgba(45,212,168,.1);--color-candidate-dim:rgba(96,165,250,.1);--font-sans:'DM Sans','Noto Sans SC',-apple-system,sans-serif;--font-mono:'SF Mono','Fira Code',ui-monospace,monospace;--radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:20px;--radius-full:9999px;--shadow-lg:0 8px 30px rgba(0,0,0,.35);--transition-fast:150ms cubic-bezier(.4,0,.2,1)}
+html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--font-sans);background:var(--color-bg);color:var(--color-text);min-height:100dvh;overflow-x:hidden}
+a{color:var(--color-accent);text-decoration:none;transition:color var(--transition-fast)}a:hover{color:#fbbf24}
+button{font-family:var(--font-sans);cursor:pointer;border:none;outline:none}button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes messageIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes evalCardIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.view{display:none;min-height:100dvh}.view.active{display:flex;flex-direction:column;animation:fadeSlideUp .35s ease-out}
+.setup-view{align-items:center;justify-content:center;padding:24px}
+.setup-card{width:100%;max-width:520px;animation:fadeSlideUp .5s ease-out}
+.setup-icon{width:56px;height:56px;border-radius:var(--radius-lg);background:var(--color-accent-dim);border:1px solid var(--color-accent-border);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 20px}
+.setup-title{font-size:1.75rem;font-weight:700;text-align:center;letter-spacing:-.02em;margin-bottom:6px}
+.setup-subtitle{font-size:.875rem;color:var(--color-text-secondary);text-align:center;margin-bottom:32px;line-height:1.5}
+.form-section{margin-bottom:24px}.form-label{font-size:.75rem;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:block}
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 16px;border-radius:var(--radius-full);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:.8125rem;font-weight:500;transition:all var(--transition-fast);white-space:nowrap}
+.chip:hover{background:var(--color-surface-hover);color:var(--color-text);border-color:var(--color-text-tertiary)}
+.chip.active{background:var(--color-accent-dim);border-color:var(--color-accent-border);color:var(--color-accent);font-weight:600}
+.pill-group{display:flex;gap:8px}
+.pill{flex:1;padding:10px 0;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:.8125rem;font-weight:500;text-align:center;transition:all var(--transition-fast)}
+.pill:hover{background:var(--color-surface-hover);color:var(--color-text)}
+.pill.active{background:var(--color-accent-dim);border-color:var(--color-accent-border);color:var(--color-accent);font-weight:600}
+.pill.active-blue{background:var(--color-candidate-dim);border-color:rgba(96,165,250,.35);color:var(--color-candidate);font-weight:600}
+.btn-start{width:100%;padding:14px;border-radius:var(--radius-md);background:var(--color-accent);color:#0f1117;font-size:.9375rem;font-weight:700;letter-spacing:.01em;transition:all var(--transition-fast);margin-top:8px}
+.btn-start:hover{background:#fbbf24;transform:translateY(-1px);box-shadow:0 4px 20px rgba(245,158,11,.3)}
+.btn-start:active{transform:translateY(0)}.btn-start:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.link-history{display:block;text-align:center;margin-top:24px;font-size:.8125rem;color:var(--color-text-tertiary);transition:color var(--transition-fast);cursor:pointer;background:none;border:none;font-family:var(--font-sans)}
+.link-history:hover{color:var(--color-accent)}
+.testing-view{height:100dvh;overflow:hidden}
+.test-header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--color-surface);border-bottom:1px solid var(--color-border);flex-shrink:0;min-height:52px}
+.btn-back{padding:6px 14px;border-radius:var(--radius-sm);background:var(--color-surface-raised);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:.8125rem;font-weight:500;transition:all var(--transition-fast)}
+.btn-back:hover{background:var(--color-surface-hover);color:var(--color-text)}
+.test-header-info{display:flex;align-items:center;gap:8px;flex:1;min-width:0;font-size:.8125rem;color:var(--color-text-secondary);overflow:hidden}
+.test-header-tag{padding:3px 10px;border-radius:var(--radius-full);background:var(--color-surface-raised);border:1px solid var(--color-border-subtle);font-size:.75rem;white-space:nowrap}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--color-interviewer);animation:pulse 1.5s ease-in-out infinite;flex-shrink:0}
+.pulse-dot.evaluating{background:var(--color-accent)}.pulse-dot.done{background:var(--color-text-tertiary);animation:none}.pulse-dot.error{background:#ef4444;animation:none}
+.messages-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
+.messages-area::-webkit-scrollbar{width:6px}.messages-area::-webkit-scrollbar-track{background:transparent}.messages-area::-webkit-scrollbar-thumb{background:var(--color-border);border-radius:3px}
+.qa-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:16px 20px;animation:messageIn .4s ease-out both}
+.qa-card-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.qa-round-badge{padding:3px 10px;border-radius:var(--radius-full);background:var(--color-accent-dim);border:1px solid var(--color-accent-border);color:var(--color-accent);font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums}
+.msg-block{margin-bottom:12px}.msg-block:last-child{margin-bottom:0}
+.msg-label{display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.msg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.msg-dot.interviewer{background:var(--color-interviewer)}.msg-dot.candidate{background:var(--color-candidate)}
+.msg-label.interviewer{color:var(--color-interviewer)}.msg-label.candidate{color:var(--color-candidate)}
+.msg-content{font-size:.875rem;line-height:1.65;color:var(--color-text);white-space:pre-wrap;word-break:break-word}
+.msg-content.interviewer-bg{background:var(--color-interviewer-dim);border-radius:var(--radius-sm);padding:10px 14px}
+.msg-content.candidate-bg{background:var(--color-candidate-dim);border-radius:var(--radius-sm);padding:10px 14px}
+.typing-indicator{display:flex;align-items:center;gap:8px;font-size:.8125rem;color:var(--color-text-tertiary);padding:4px 0}
+.typing-cursor{display:inline-block;width:2px;height:14px;background:var(--color-candidate);animation:blink 1s step-end infinite}
+.status-bar{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--color-surface);border-top:1px solid var(--color-border);font-size:.8125rem;color:var(--color-text-secondary);flex-shrink:0}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.status-dot.running{background:var(--color-interviewer);animation:pulse 1.5s ease-in-out infinite}
+.status-dot.evaluating{background:var(--color-accent);animation:pulse 1s ease-in-out infinite}
+.status-dot.done{background:var(--color-text-tertiary)}.status-dot.error{background:#ef4444}
+.eval-panel{border-top:1px solid var(--color-border);background:var(--color-surface);overflow-y:auto;max-height:50vh;flex-shrink:0;animation:fadeSlideUp .4s ease-out}
+.eval-panel-inner{padding:20px;max-width:720px;margin:0 auto;width:100%}
+.eval-title{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.score-card{background:var(--color-surface-raised);border:1px solid var(--color-border-subtle);border-radius:var(--radius-md);padding:14px 10px;text-align:center;animation:evalCardIn .4s ease-out both}
+.score-card:nth-child(1){animation-delay:.05s}.score-card:nth-child(2){animation-delay:.1s}.score-card:nth-child(3){animation-delay:.15s}.score-card:nth-child(4){animation-delay:.2s}.score-card:nth-child(5){animation-delay:.25s}
+.score-value{font-size:1.5rem;font-weight:700;color:var(--color-accent);font-variant-numeric:tabular-nums;margin-bottom:4px}
+.score-label{font-size:.6875rem;color:var(--color-text-tertiary);line-height:1.3}
+.score-value.high{color:var(--color-interviewer)}.score-value.mid{color:var(--color-accent)}.score-value.low{color:#ef4444}
+.eval-section{margin-bottom:16px}.eval-section-title{font-size:.75rem;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.eval-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.eval-list li{font-size:.8125rem;line-height:1.5;color:var(--color-text);padding:8px 12px;background:var(--color-surface-raised);border-radius:var(--radius-sm);border-left:3px solid var(--color-accent)}
+.eval-list li.strength{border-left-color:var(--color-interviewer)}.eval-list li.weakness{border-left-color:#ef4444}.eval-list li.suggestion{border-left-color:var(--color-candidate)}
+.eval-summary{font-size:.8125rem;line-height:1.6;color:var(--color-text-secondary);padding:12px 14px;background:var(--color-surface-raised);border-radius:var(--radius-sm);border:1px solid var(--color-border-subtle)}
+.sessions-view{padding:24px;max-width:720px;margin:0 auto;width:100%}
+.sessions-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;animation:fadeSlideUp .4s ease-out}
+.sessions-title{font-size:1.25rem;font-weight:700}
+.btn-back-sessions{padding:6px 14px;border-radius:var(--radius-sm);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:.8125rem;font-weight:500;transition:all var(--transition-fast)}
+.btn-back-sessions:hover{background:var(--color-surface-hover);color:var(--color-text)}
+.sessions-list{display:flex;flex-direction:column;gap:10px}
+.session-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:16px 20px;cursor:pointer;transition:all var(--transition-fast);animation:fadeSlideUp .4s ease-out both}
+.session-card:hover{background:var(--color-surface-hover);border-color:var(--color-accent-border);transform:translateY(-1px)}
+.session-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.session-id{font-size:.75rem;font-family:var(--font-mono);color:var(--color-text-tertiary)}
+.session-score{font-size:.875rem;font-weight:700;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.session-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:.75rem;color:var(--color-text-secondary)}
+.session-tag{padding:2px 8px;border-radius:var(--radius-full);background:var(--color-surface-raised);border:1px solid var(--color-border-subtle)}
+.session-detail{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;animation:fadeSlideUp .4s ease-out;margin-top:16px}
+.session-detail-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-border)}
+.session-detail-title{font-size:.9375rem;font-weight:600}
+.btn-close-detail{padding:4px 12px;border-radius:var(--radius-sm);background:var(--color-surface-raised);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:.75rem;transition:all var(--transition-fast)}
+.btn-close-detail:hover{background:var(--color-surface-hover);color:var(--color-text)}
+.session-detail-body{padding:20px;max-height:70vh;overflow-y:auto}
+.session-detail-body .qa-card{margin-bottom:12px}
+.session-detail-body .eval-panel{max-height:none;border-top:none;margin-top:16px}
+.session-detail-body .eval-panel-inner{padding:0;max-width:none}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--color-text-tertiary);text-align:center}
+.empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}.empty-text{font-size:.875rem}
+.loading-spinner{width:18px;height:18px;border:2px solid var(--color-border);border-top-color:var(--color-accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle}
+.error-banner{padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius-md);color:#fca5a5;font-size:.8125rem;margin-bottom:16px}
+@media(max-width:640px){.score-grid{grid-template-columns:repeat(3,1fr)}.setup-card{padding:0 8px}.test-header{padding:10px 12px}.messages-area{padding:12px}.session-detail-body{padding:12px}}
+</style>
+</head>
+<body>
+<div id="setup-view" class="view setup-view active">
+<div class="setup-card">
+<div class="setup-icon">&#129514;</div>
+<h1 class="setup-title">Interview Tester</h1>
+<p class="setup-subtitle">&#37197;&#32622;&#21442;&#25968;&#65292;&#35753; AI &#20505;&#36873;&#20154;&#27979;&#35797;&#38754;&#35797; Agent &#30340;&#34920;&#29616;</p>
+<div class="form-section">
+<label class="form-label">&#38754;&#35797;&#39046;&#22495;</label>
+<div class="chip-group" id="domain-chips"></div>
+</div>
+<div class="form-section">
+<label class="form-label">&#38754;&#35797;&#38590;&#24230;</label>
+<div class="pill-group" id="diff-pills"></div>
+</div>
+<div class="form-section">
+<label class="form-label">&#20505;&#36873;&#20154;&#27700;&#24179;</label>
+<div class="pill-group" id="level-pills"></div>
+</div>
+<button class="btn-start" id="btn-start" onclick="startTest()">&#24320;&#22987;&#27979;&#35797;</button>
+<button class="link-history" onclick="showSessions()">&#26597;&#30475;&#21382;&#21490;&#35760;&#24405;</button>
+</div>
+</div>
+
+<div id="testing-view" class="view testing-view">
+<div class="test-header">
+<button class="btn-back" onclick="backToSetup()">&#36820;&#22238;</button>
+<div class="test-header-info" id="test-header-info"></div>
+<div class="pulse-dot" id="pulse-dot"></div>
+</div>
+<div class="messages-area" id="messages-area"></div>
+<div id="eval-container"></div>
+<div class="status-bar">
+<div class="status-dot running" id="status-dot"></div>
+<span id="status-text">&#38754;&#35797;&#36827;&#34892;&#20013;</span>
+</div>
+</div>
+
+<div id="sessions-view" class="view sessions-view">
+<div class="sessions-header">
+<h2 class="sessions-title">&#27979;&#35797;&#21382;&#21490;</h2>
+<button class="btn-back-sessions" onclick="backToSetup()">&#36820;&#22238;</button>
+</div>
+<div id="sessions-content"></div>
+</div>
+
+<script>
+const DOMAINS=[['backend','\u540e\u7aef\u5f00\u53d1'],['frontend','\u524d\u7aef\u5f00\u53d1'],['fullstack','\u5168\u6808\u5f00\u53d1'],['algorithm','\u7b97\u6cd5'],['embedded','\u5d4c\u5165\u5f0f'],['devops','\u8fd0\u7ef4'],['data','\u6570\u636e'],['security','\u5b89\u5168']];
+const DIFFS=[['junior','\u521d\u7ea7'],['mid','\u4e2d\u7ea7'],['senior','\u9ad8\u7ea7']];
+const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
+const state={domain:'backend',difficulty:'mid',candidate_level:'mid',qaPairs:[],status:'idle',evaluation:null,sessionId:null};
+
+function $(id){return document.getElementById(id)}
+function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$(id).classList.add('active')}
+
+function initSetup(){
+  const dc=$('domain-chips');
+  dc.innerHTML=DOMAINS.map(([k,v])=>`<button class="chip${state.domain===k?' active':''}" data-domain="${k}" onclick="selectDomain('${k}')">${v}</button>`).join('');
+  const dp=$('diff-pills');
+  dp.innerHTML=DIFFS.map(([k,v])=>`<button class="pill${state.difficulty===k?' active':''}" data-diff="${k}" onclick="selectDiff('${k}')">${v}</button>`).join('');
+  const lp=$('level-pills');
+  lp.innerHTML=DIFFS.map(([k,v])=>`<button class="pill${state.candidate_level===k?' active-blue':''}" data-level="${k}" onclick="selectLevel('${k}')">${v}</button>`).join('');
+}
+
+function selectDomain(d){state.domain=d;initSetup()}
+function selectDiff(d){state.difficulty=d;initSetup()}
+function selectLevel(l){state.candidate_level=l;initSetup()}
+
+function backToSetup(){state.status='idle';showView('setup-view')}
+
+function startTest(){
+  state.qaPairs=[];state.evaluation=null;state.status='running';state.sessionId=null;
+  $('messages-area').innerHTML='';$('eval-container').innerHTML='';
+  updateStatus('running','\u9762\u8bd5\u8fdb\u884c\u4e2d');
+  $('pulse-dot').className='pulse-dot';
+  const info=$('test-header-info');
+  const dm=DOMAINS.find(d=>d[0]===state.domain);
+  const df=DIFFS.find(d=>d[0]===state.difficulty);
+  const lv=DIFFS.find(d=>d[0]===state.candidate_level);
+  info.innerHTML=`<span class="test-header-tag">${esc(dm?dm[1]:state.domain)}</span><span class="test-header-tag">${esc(df?df[1]:state.difficulty)}</span><span class="test-header-tag">${esc(lv?lv[1]:state.candidate_level)}</span>`;
+  showView('testing-view');
+  streamTest();
+}
+
+async function streamTest(){
+  try{
+    const resp=await fetch('/api/test/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:state.domain,difficulty:state.difficulty,candidate_level:state.candidate_level,max_rounds:50})});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const reader=resp.body.getReader();
+    const decoder=new TextDecoder();
+    let buffer='';
+    while(true){
+      const{done,value}=await reader.read();
+      if(done) break;
+      buffer+=decoder.decode(value,{stream:true});
+      const lines=buffer.split('\n');
+      buffer=lines.pop();
+      for(const line of lines){
+        if(line.startsWith('data: ')){
+          try{handleEvent(JSON.parse(line.slice(6)))}catch(e){console.error('parse error',e)}
+        }
+      }
+    }
+  }catch(e){
+    state.status='error';
+    updateStatus('error','\u51fa\u9519: '+e.message);
+    $('pulse-dot').className='pulse-dot error';
+  }
+}
+
+function handleEvent(ev){
+  switch(ev.type){
+    case 'start':state.sessionId=ev.session_id;break;
+    case 'question':
+      state.qaPairs.push({round:ev.round,question:ev.content,answer:null});
+      addQACard(ev.round,ev.content);
+      break;
+    case 'answer':
+      const qa=state.qaPairs.find(q=>q.round===ev.round);
+      if(qa) qa.answer=ev.content;
+      fillAnswer(ev.round,ev.content);
+      break;
+    case 'ending':
+      updateStatus('running','\u68c0\u6d4b\u5230\u9762\u8bd5\u7ed3\u675f\u4fe1\u53f7');
+      break;
+    case 'evaluating':
+      state.status='evaluating';
+      updateStatus('evaluating','\u6b63\u5728\u8bc4\u4f30');
+      $('pulse-dot').className='pulse-dot evaluating';
+      break;
+    case 'evaluation':
+      state.evaluation=ev.data;
+      renderEvaluation(ev.data);
+      break;
+    case 'error':
+      state.status='error';
+      updateStatus('error','\u51fa\u9519: '+ev.message);
+      $('pulse-dot').className='pulse-dot error';
+      break;
+    case 'done':
+      state.status='done';
+      updateStatus('done','\u6d4b\u8bd5\u5b8c\u6210');
+      $('pulse-dot').className='pulse-dot done';
+      break;
+  }
+}
+
+function addQACard(round,question){
+  const ma=$('messages-area');
+  const card=document.createElement('div');
+  card.className='qa-card';card.id='qa-'+round;
+  card.innerHTML=`<div class="qa-card-header"><span class="qa-round-badge">\u7b2c ${round} \u8f6e</span></div><div class="msg-block"><div class="msg-label interviewer"><span class="msg-dot interviewer"></span>\u9762\u8bd5\u5b98</div><div class="msg-content interviewer-bg">${esc(question)}</div></div><div class="msg-block" id="answer-${round}"><div class="msg-label candidate"><span class="msg-dot candidate"></span>\u5019\u9009\u4eba</div><div class="typing-indicator">\u5019\u9009\u4eba\u6b63\u5728\u56de\u7b54...<span class="typing-cursor"></span></div></div>`;
+  ma.appendChild(card);
+  ma.scrollTop=ma.scrollHeight;
+}
+
+function fillAnswer(round,answer){
+  const block=$('answer-'+round);
+  if(!block) return;
+  block.innerHTML=`<div class="msg-label candidate"><span class="msg-dot candidate"></span>\u5019\u9009\u4eba</div><div class="msg-content candidate-bg">${esc(answer)}</div>`;
+  const ma=$('messages-area');
+  ma.scrollTop=ma.scrollHeight;
+}
+
+function updateStatus(type,text){
+  const dot=$('status-dot');
+  dot.className='status-dot '+type;
+  $('status-text').textContent=text;
+}
+
+function scoreClass(v){return v>=7?'high':v>=4?'mid':'low'}
+
+function renderEvaluation(ev){
+  const c=$('eval-container');
+  const items=[['style_naturalness','\u81ea\u7136\u5ea6'],['difficulty_appropriateness','\u96be\u5ea6\u9002\u5f53\u6027'],['follow_up_quality','\u8ffd\u95ee\u8d28\u91cf'],['topic_coverage','\u8bdd\u9898\u8986\u76d6'],['overall_score','\u603b\u4f53\u8bc4\u5206']];
+  const scores=items.map(([k,l])=>`<div class="score-card"><div class="score-value ${scoreClass(ev[k])}">${ev[k]}</div><div class="score-label">${l}</div></div>`).join('');
+  const strengths=(ev.strengths||[]).map(s=>`<li class="strength">${esc(s)}</li>`).join('');
+  const weaknesses=(ev.weaknesses||[]).map(s=>`<li class="weakness">${esc(s)}</li>`).join('');
+  const suggestions=(ev.improvement_suggestions||[]).map(s=>`<li class="suggestion">${esc(s)}</li>`).join('');
+  c.innerHTML=`<div class="eval-panel"><div class="eval-panel-inner"><div class="eval-title">\u{1f4ca} \u8bc4\u4f30\u7ed3\u679c</div><div class="score-grid">${scores}</div><div class="eval-section"><div class="eval-section-title">\u4f18\u52bf</div><ul class="eval-list">${strengths||'<li>\u65e0</li>'}</ul></div><div class="eval-section"><div class="eval-section-title">\u4e0d\u8db3</div><ul class="eval-list">${weaknesses||'<li>\u65e0</li>'}</ul></div><div class="eval-section"><div class="eval-section-title">\u603b\u7ed3</div><div class="eval-summary">${esc(ev.summary||'')}</div></div><div class="eval-section"><div class="eval-section-title">\u6539\u8fdb\u5efa\u8bae</div><ul class="eval-list">${suggestions||'<li>\u65e0</li>'}</ul></div></div></div>`;
+  c.scrollIntoView({behavior:'smooth'});
+}
+
+async function showSessions(){
+  showView('sessions-view');
+  const c=$('sessions-content');
+  c.innerHTML='<div class="empty-state"><span class="loading-spinner"></span> <span class="empty-text">\u52a0\u8f7d\u4e2d...</span></div>';
+  try{
+    const resp=await fetch('/api/sessions');
+    const data=await resp.json();
+    if(!data.sessions||data.sessions.length===0){c.innerHTML='<div class="empty-state"><div class="empty-icon">\u{1f4c4}</div><div class="empty-text">\u6682\u65e0\u6d4b\u8bd5\u8bb0\u5f55</div></div>';return}
+    c.innerHTML='<div class="sessions-list">'+data.sessions.map(s=>{
+      const dm=DOMAINS.find(d=>d[0]===s.domain);
+      const df=DIFFS.find(d=>d[0]===s.difficulty);
+      const t=s.started_at?new Date(s.started_at).toLocaleString('zh-CN'):'';
+      const sc=s.overall_score!=null?`${s.overall_score}/10`:'--';
+      return `<div class="session-card" onclick="showSessionDetail('${esc(s.session_id)}')"><div class="session-card-top"><span class="session-id">${esc(s.session_id)}</span><span class="session-score">${sc}</span></div><div class="session-meta"><span class="session-tag">${esc(dm?dm[1]:s.domain)}</span><span class="session-tag">${esc(df?df[1]:s.difficulty)}</span><span class="session-tag">${s.total_rounds}\u8f6e</span><span class="session-tag">${t}</span></div></div>`;
+    }).join('')+'</div>';
+  }catch(e){c.innerHTML=`<div class="error-banner">\u52a0\u8f7d\u5931\u8d25: ${esc(e.message)}</div>`}
+}
+
+async function showSessionDetail(sid){
+  const c=$('sessions-content');
+  c.innerHTML='<div class="empty-state"><span class="loading-spinner"></span> <span class="empty-text">\u52a0\u8f7d\u4e2d...</span></div>';
+  try{
+    const resp=await fetch('/api/sessions/'+encodeURIComponent(sid));
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const s=await resp.json();
+    let html='<div class="session-detail"><div class="session-detail-header"><span class="session-detail-title">'+esc(s.session_id)+'</span><button class="btn-close-detail" onclick="showSessions()">\u8fd4\u56de\u5217\u8868</button></div><div class="session-detail-body">';
+    if(s.qa_pairs&&s.qa_pairs.length){
+      html+=s.qa_pairs.map(qa=>`<div class="qa-card"><div class="qa-card-header"><span class="qa-round-badge">\u7b2c ${qa.round} \u8f6e</span></div><div class="msg-block"><div class="msg-label interviewer"><span class="msg-dot interviewer"></span>\u9762\u8bd5\u5b98</div><div class="msg-content interviewer-bg">${esc(qa.question)}</div></div><div class="msg-block"><div class="msg-label candidate"><span class="msg-dot candidate"></span>\u5019\u9009\u4eba</div><div class="msg-content candidate-bg">${esc(qa.answer)}</div></div></div>`).join('');
+    }
+    if(s.evaluation){
+      const ev=s.evaluation;
+      const items=[['style_naturalness','\u81ea\u7136\u5ea6'],['difficulty_appropriateness','\u96be\u5ea6\u9002\u5f53\u6027'],['follow_up_quality','\u8ffd\u95ee\u8d28\u91cf'],['topic_coverage','\u8bdd\u9898\u8986\u76d6'],['overall_score','\u603b\u4f53\u8bc4\u5206']];
+      const scores=items.map(([k,l])=>`<div class="score-card"><div class="score-value ${scoreClass(ev[k])}">${ev[k]}</div><div class="score-label">${l}</div></div>`).join('');
+      const strengths=(ev.strengths||[]).map(x=>`<li class="strength">${esc(x)}</li>`).join('');
+      const weaknesses=(ev.weaknesses||[]).map(x=>`<li class="weakness">${esc(x)}</li>`).join('');
+      const suggestions=(ev.improvement_suggestions||[]).map(x=>`<li class="suggestion">${esc(x)}</li>`).join('');
+      html+=`<div class="eval-panel"><div class="eval-panel-inner"><div class="eval-title">\u{1f4ca} \u8bc4\u4f30\u7ed3\u679c</div><div class="score-grid">${scores}</div><div class="eval-section"><div class="eval-section-title">\u4f18\u52bf</div><ul class="eval-list">${strengths||'<li>\u65e0</li>'}</ul></div><div class="eval-section"><div class="eval-section-title">\u4e0d\u8db3</div><ul class="eval-list">${weaknesses||'<li>\u65e0</li>'}</ul></div><div class="eval-section"><div class="eval-section-title">\u603b\u7ed3</div><div class="eval-summary">${esc(ev.summary||'')}</div></div><div class="eval-section"><div class="eval-section-title">\u6539\u8fdb\u5efa\u8bae</div><ul class="eval-list">${suggestions||'<li>\u65e0</li>'}</ul></div></div></div>`;
+    }
+    html+='</div></div>';
+    c.innerHTML=html;
+  }catch(e){c.innerHTML=`<div class="error-banner">\u52a0\u8f7d\u5931\u8d25: ${esc(e.message)}</div><button class="btn-back-sessions" onclick="showSessions()">\u8fd4\u56de\u5217\u8868</button>`}
+}
+
+initSetup();
+</script>
+</body>
+</html>
