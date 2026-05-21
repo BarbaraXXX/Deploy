@@ -1,0 +1,25 @@
+name: style_challenge
+description: 候选人行为模式挑战 - 测试面试官对不同风格候选人的适应能力
+pass_threshold: 7
+tests:
+  - domain: backend
+    difficulty: mid
+    candidate_level: mid
+    candidate_style: cooperative
+  - domain: backend
+    difficulty: mid
+    candidate_level: mid
+    candidate_style: weak
+  - domain: backend
+    difficulty: mid
+    candidate_level: mid
+    candidate_style: evasive
+  - domain: backend
+    difficulty: mid
+    candidate_level: mid
+    candidate_style: overconfident
+  - domain: backend
+    difficulty: mid
+    candidate_level: mid
+    candidate_style: specific_weakness
+    candidate_weaknesses: ["分布式系统", "消息队列"]

@@ -1,0 +1,8 @@
+name: quick_coverage
+description: 快速覆盖测试 - 每个领域一次 mid 难度 cooperative 候选人
+pass_threshold: 7
+matrix:
+  domains: [backend, frontend, algorithm, fullstack]
+  difficulties: [mid]
+  candidate_levels: [mid]
+  candidate_styles: [cooperative]

@@ -1,0 +1,8 @@
+name: full_coverage
+description: 全维度覆盖测试 - 领域×难度×行为模式
+pass_threshold: 7
+matrix:
+  domains: [backend, frontend, algorithm, fullstack, embedded, devops, data, security]
+  difficulties: [junior, mid, senior]
+  candidate_levels: [junior, mid, senior]
+  candidate_styles: [cooperative, weak]

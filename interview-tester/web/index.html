@@ -39,6 +39,15 @@ button{font-family:var(--font-sans);cursor:pointer;border:none;outline:none}butt
 .btn-start:active{transform:translateY(0)}.btn-start:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .link-history{display:block;text-align:center;margin-top:24px;font-size:.8125rem;color:var(--color-text-tertiary);transition:color var(--transition-fast);cursor:pointer;background:none;border:none;font-family:var(--font-sans)}
 .link-history:hover{color:var(--color-accent)}
+.input-area{width:100%;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);font-family:var(--font-sans);font-size:.8125rem;line-height:1.5;resize:vertical;min-height:80px;max-height:200px;outline:none;transition:border-color var(--transition-fast)}
+.input-area::placeholder{color:var(--color-text-tertiary)}
+.input-area:focus{border-color:var(--color-accent-border)}
+.input-select{width:100%;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);font-family:var(--font-sans);font-size:.8125rem;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239499ad' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;transition:border-color var(--transition-fast)}
+.input-select:focus{border-color:var(--color-accent-border)}
+.input-field{flex:1;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);font-family:var(--font-sans);font-size:.8125rem;outline:none;transition:border-color var(--transition-fast)}
+.input-field::placeholder{color:var(--color-text-tertiary)}
+.input-field:focus{border-color:var(--color-accent-border)}
+.profile-custom{display:flex;gap:8px;margin-top:8px}
 .testing-view{height:100dvh;overflow:hidden}
 .test-header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--color-surface);border-bottom:1px solid var(--color-border);flex-shrink:0;min-height:52px}
 .btn-back{padding:6px 14px;border-radius:var(--radius-sm);background:var(--color-surface-raised);border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:.8125rem;font-weight:500;transition:all var(--transition-fast)}
@@ -70,9 +79,9 @@ button{font-family:var(--font-sans);cursor:pointer;border:none;outline:none}butt
 .eval-panel{border-top:1px solid var(--color-border);background:var(--color-surface);overflow-y:auto;max-height:50vh;flex-shrink:0;animation:fadeSlideUp .4s ease-out}
 .eval-panel-inner{padding:20px;max-width:720px;margin:0 auto;width:100%}
 .eval-title{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
 .score-card{background:var(--color-surface-raised);border:1px solid var(--color-border-subtle);border-radius:var(--radius-md);padding:14px 10px;text-align:center;animation:evalCardIn .4s ease-out both}
-.score-card:nth-child(1){animation-delay:.05s}.score-card:nth-child(2){animation-delay:.1s}.score-card:nth-child(3){animation-delay:.15s}.score-card:nth-child(4){animation-delay:.2s}.score-card:nth-child(5){animation-delay:.25s}
+.score-card:nth-child(1){animation-delay:.05s}.score-card:nth-child(2){animation-delay:.1s}.score-card:nth-child(3){animation-delay:.15s}.score-card:nth-child(4){animation-delay:.2s}.score-card:nth-child(5){animation-delay:.25s}.score-card:nth-child(6){animation-delay:.3s}.score-card:nth-child(7){animation-delay:.35s}.score-card:nth-child(8){animation-delay:.4s}
 .score-value{font-size:1.5rem;font-weight:700;color:var(--color-accent);font-variant-numeric:tabular-nums;margin-bottom:4px}
 .score-label{font-size:.6875rem;color:var(--color-text-tertiary);line-height:1.3}
 .score-value.high{color:var(--color-interviewer)}.score-value.mid{color:var(--color-accent)}.score-value.low{color:#ef4444}
@@ -107,7 +116,7 @@ button{font-family:var(--font-sans);cursor:pointer;border:none;outline:none}butt
 .empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}.empty-text{font-size:.875rem}
 .loading-spinner{width:18px;height:18px;border:2px solid var(--color-border);border-top-color:var(--color-accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle}
 .error-banner{padding:12px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius-md);color:#fca5a5;font-size:.8125rem;margin-bottom:16px}
-@media(max-width:640px){.score-grid{grid-template-columns:repeat(3,1fr)}.setup-card{padding:0 8px}.test-header{padding:10px 12px}.messages-area{padding:12px}.session-detail-body{padding:12px}}
+@media(max-width:640px){.score-grid{grid-template-columns:repeat(2,1fr)}.setup-card{padding:0 8px}.test-header{padding:10px 12px}.messages-area{padding:12px}.session-detail-body{padding:12px}}
 </style>
 </head>
 <body>
@@ -119,6 +128,9 @@ button{font-family:var(--font-sans);cursor:pointer;border:none;outline:none}butt
 <div class="form-section">
 <label class="form-label">&#38754;&#35797;&#39046;&#22495;</label>
 <div class="chip-group" id="domain-chips"></div>
+<div style="margin-top:10px">
+<input class="input-field" id="custom-domain" placeholder="自定义领域（留空使用上方选择）">
+</div>
 </div>
 <div class="form-section">
 <label class="form-label">&#38754;&#35797;&#38590;&#24230;</label>
@@ -128,7 +140,35 @@ button{font-family:var(--font-sans);cursor:pointer;border:none;outline:none}butt
 <label class="form-label">&#20505;&#36873;&#20154;&#27700;&#24179;</label>
 <div class="pill-group" id="level-pills"></div>
 </div>
+<div class="form-section">
+<label class="form-label">&#20505;&#36873;&#20154;&#34892;&#20026;&#27169;&#24335;</label>
+<div class="chip-group" id="style-chips"></div>
+<div id="weakness-section" style="display:none;margin-top:10px">
+  <input class="input-field" id="weakness-input" placeholder="&#24369;&#28857;&#39046;&#22495;&#65292;&#36887;&#21495;&#20998;&#38548;&#65288;&#22914;&#65306;&#20998;&#24067;&#24335;&#31995;&#32479;,&#28040;&#24687;&#38431;&#21015;&#65289;">
+</div>
+</div>
+<div class="form-section">
+<label class="form-label">&#23703;&#20301;JD&#65288;&#21487;&#36873;&#65289;</label>
+<textarea class="input-area" id="jd-input" placeholder="&#31896;&#36148;&#23703;&#20301;JD&#65292;AI&#23558;&#26681;&#25454;JD&#35843;&#25972;&#38754;&#35797;&#20391;&#37325;&#28857;..." rows="4"></textarea>
+</div>
+<div class="form-section">
+<label class="form-label">&#38754;&#35797;&#20559;&#22909;&#65288;&#21487;&#36873;&#65289;</label>
+<select class="input-select" id="profile-select" onchange="onProfileChange()">
+<option value="-1">&#26080;</option>
+</select>
+<div class="profile-custom" id="profile-custom" style="display:none">
+<input class="input-field" id="profile-company" placeholder="&#20844;&#21496;&#21517;&#31216;">
+<input class="input-field" id="profile-position" placeholder="&#23703;&#20301;&#21517;&#31216;">
+</div>
+</div>
 <button class="btn-start" id="btn-start" onclick="startTest()">&#24320;&#22987;&#27979;&#35797;</button>
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--color-border)">
+  <label class="form-label">测试套件</label>
+  <select class="input-select" id="suite-select" onchange="onSuiteChange()">
+    <option value="">选择套件...</option>
+  </select>
+  <button class="btn-start" id="btn-suite" onclick="startSuite()" disabled style="margin-top:8px;opacity:0.7">运行套件</button>
+</div>
 <button class="link-history" onclick="showSessions()">&#26597;&#30475;&#21382;&#21490;&#35760;&#24405;</button>
 </div>
 </div>
@@ -158,8 +198,9 @@ button{font-family:var(--font-sans);cursor:pointer;border:none;outline:none}butt
 <script>
 const DOMAINS=[['backend','\u540e\u7aef\u5f00\u53d1'],['frontend','\u524d\u7aef\u5f00\u53d1'],['fullstack','\u5168\u6808\u5f00\u53d1'],['algorithm','\u7b97\u6cd5'],['embedded','\u5d4c\u5165\u5f0f'],['devops','\u8fd0\u7ef4'],['data','\u6570\u636e'],['security','\u5b89\u5168']];
 const DIFFS=[['junior','\u521d\u7ea7'],['mid','\u4e2d\u7ea7'],['senior','\u9ad8\u7ea7']];
+const STYLES=[['cooperative','配合'],['weak','薄弱'],['evasive','回避'],['overconfident','过度自信'],['specific_weakness','特定弱点']];
 const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
-const state={domain:'backend',difficulty:'mid',candidate_level:'mid',qaPairs:[],status:'idle',evaluation:null,sessionId:null};
+const state={domain:'backend',difficulty:'mid',candidate_level:'mid',candidate_style:'cooperative',qaPairs:[],status:'idle',evaluation:null,sessionId:null,profiles:[]};
 
 function $(id){return document.getElementById(id)}
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$(id).classList.add('active')}
@@ -171,11 +212,41 @@ function initSetup(){
   dp.innerHTML=DIFFS.map(([k,v])=>`<button class="pill${state.difficulty===k?' active':''}" data-diff="${k}" onclick="selectDiff('${k}')">${v}</button>`).join('');
   const lp=$('level-pills');
   lp.innerHTML=DIFFS.map(([k,v])=>`<button class="pill${state.candidate_level===k?' active-blue':''}" data-level="${k}" onclick="selectLevel('${k}')">${v}</button>`).join('');
+  const sc=$('style-chips');
+  sc.innerHTML=STYLES.map(([k,v])=>`<button class="chip${state.candidate_style===k?' active':''}" data-style="${k}" onclick="selectStyle('${k}')">${v}</button>`).join('');
+  $('weakness-section').style.display=state.candidate_style==='specific_weakness'?'block':'none';
+  loadProfiles();
+  loadSuites();
 }
 
 function selectDomain(d){state.domain=d;initSetup()}
 function selectDiff(d){state.difficulty=d;initSetup()}
 function selectLevel(l){state.candidate_level=l;initSetup()}
+function selectStyle(s){state.candidate_style=s;initSetup()}
+
+async function loadProfiles(){
+  const sel=$('profile-select');
+  try{
+    const resp=await fetch('/api/profiles');
+    const data=await resp.json();
+    state.profiles=data.profiles||[];
+    let opts='<option value="-1">\u65e0</option>';
+    state.profiles.forEach((p,i)=>{
+      const label=esc(p.company)+' - '+esc(p.position)+(p.source_count?' (\u57fa\u4e8e'+p.source_count+'\u4efd\u9762\u7ecf)':'');
+      opts+=`<option value="${i}">${label}</option>`;
+    });
+    opts+='<option value="-2">\u624b\u52a8\u8f93\u5165...</option>';
+    sel.innerHTML=opts;
+  }catch(e){
+    sel.innerHTML='<option value="-1">\u65e0\uff08\u52a0\u8f7d\u5931\u8d25\uff09</option>';
+  }
+}
+
+function onProfileChange(){
+  const sel=$('profile-select');
+  const custom=$('profile-custom');
+  custom.style.display=sel.value==='-2'?'flex':'none';
+}
 
 function backToSetup(){state.status='idle';showView('setup-view')}
 
@@ -184,18 +255,34 @@ function startTest(){
   $('messages-area').innerHTML='';$('eval-container').innerHTML='';
   updateStatus('running','\u9762\u8bd5\u8fdb\u884c\u4e2d');
   $('pulse-dot').className='pulse-dot';
+  const customDomain=$('custom-domain').value.trim();
+  if(customDomain) state.domain=customDomain;
   const info=$('test-header-info');
   const dm=DOMAINS.find(d=>d[0]===state.domain);
   const df=DIFFS.find(d=>d[0]===state.difficulty);
   const lv=DIFFS.find(d=>d[0]===state.candidate_level);
-  info.innerHTML=`<span class="test-header-tag">${esc(dm?dm[1]:state.domain)}</span><span class="test-header-tag">${esc(df?df[1]:state.difficulty)}</span><span class="test-header-tag">${esc(lv?lv[1]:state.candidate_level)}</span>`;
+  const st=STYLES.find(s=>s[0]===state.candidate_style);
+  info.innerHTML=`<span class="test-header-tag">${esc(dm?dm[1]:state.domain)}</span><span class="test-header-tag">${esc(df?df[1]:state.difficulty)}</span><span class="test-header-tag">${esc(lv?lv[1]:state.candidate_level)}</span><span class="test-header-tag">${esc(st?st[1]:state.candidate_style)}</span>`;
   showView('testing-view');
-  streamTest();
+  const jd=$('jd-input').value.trim();
+  const sel=$('profile-select');
+  let profileCompany='',profilePosition='';
+  if(sel.value==='-2'){
+    profileCompany=$('profile-company').value.trim();
+    profilePosition=$('profile-position').value.trim();
+  }else if(Number(sel.value)>=0&&state.profiles[Number(sel.value)]){
+    profileCompany=state.profiles[Number(sel.value)].company;
+    profilePosition=state.profiles[Number(sel.value)].position;
+  }
+  const candidate_weaknesses=$('weakness-input').value.trim();
+  streamTest(jd,profileCompany,profilePosition,candidate_weaknesses);
 }
 
-async function streamTest(){
+async function streamTest(jd,profileCompany,profilePosition,candidate_weaknesses){
   try{
-    const resp=await fetch('/api/test/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:state.domain,difficulty:state.difficulty,candidate_level:state.candidate_level,max_rounds:50})});
+    const body={domain:state.domain,difficulty:state.difficulty,candidate_level:state.candidate_level,candidate_style:state.candidate_style,max_rounds:50,job_description:jd,profile_company:profileCompany,profile_position:profilePosition};
+    if(candidate_weaknesses) body.candidate_weaknesses=candidate_weaknesses.split(',').map(s=>s.trim()).filter(Boolean);
+    const resp=await fetch('/api/test/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!resp.ok) throw new Error('HTTP '+resp.status);
     const reader=resp.body.getReader();
     const decoder=new TextDecoder();
@@ -222,6 +309,9 @@ async function streamTest(){
 function handleEvent(ev){
   switch(ev.type){
     case 'start':state.sessionId=ev.session_id;break;
+    case 'status':
+      updateStatus('running',ev.message);
+      break;
     case 'question':
       state.qaPairs.push({round:ev.round,question:ev.content,answer:null});
       addQACard(ev.round,ev.content);
@@ -283,8 +373,8 @@ function scoreClass(v){return v>=7?'high':v>=4?'mid':'low'}
 
 function renderEvaluation(ev){
   const c=$('eval-container');
-  const items=[['style_naturalness','\u81ea\u7136\u5ea6'],['difficulty_appropriateness','\u96be\u5ea6\u9002\u5f53\u6027'],['follow_up_quality','\u8ffd\u95ee\u8d28\u91cf'],['topic_coverage','\u8bdd\u9898\u8986\u76d6'],['overall_score','\u603b\u4f53\u8bc4\u5206']];
-  const scores=items.map(([k,l])=>`<div class="score-card"><div class="score-value ${scoreClass(ev[k])}">${ev[k]}</div><div class="score-label">${l}</div></div>`).join('');
+  const items=[['style_naturalness','\u81ea\u7136\u5ea6'],['difficulty_appropriateness','\u96be\u5ea6\u9002\u5f53\u6027'],['follow_up_quality','\u8ffd\u95ee\u8d28\u91cf'],['topic_coverage','\u8bdd\u9898\u8986\u76d6'],['overall_score','\u603b\u4f53\u8bc4\u5206'],['jd_relevance','JD关联度'],['profile_relevance','偏好匹配度'],['difficulty_adaptation','难度调整']];
+  const scores=items.map(([k,l])=>`<div class="score-card"><div class="score-value ${scoreClass(ev[k])}">${ev[k]!=null?ev[k]:'--'}</div><div class="score-label">${l}</div></div>`).join('');
   const strengths=(ev.strengths||[]).map(s=>`<li class="strength">${esc(s)}</li>`).join('');
   const weaknesses=(ev.weaknesses||[]).map(s=>`<li class="weakness">${esc(s)}</li>`).join('');
   const suggestions=(ev.improvement_suggestions||[]).map(s=>`<li class="suggestion">${esc(s)}</li>`).join('');
@@ -323,8 +413,8 @@ async function showSessionDetail(sid){
     }
     if(s.evaluation){
       const ev=s.evaluation;
-      const items=[['style_naturalness','\u81ea\u7136\u5ea6'],['difficulty_appropriateness','\u96be\u5ea6\u9002\u5f53\u6027'],['follow_up_quality','\u8ffd\u95ee\u8d28\u91cf'],['topic_coverage','\u8bdd\u9898\u8986\u76d6'],['overall_score','\u603b\u4f53\u8bc4\u5206']];
-      const scores=items.map(([k,l])=>`<div class="score-card"><div class="score-value ${scoreClass(ev[k])}">${ev[k]}</div><div class="score-label">${l}</div></div>`).join('');
+      const items=[['style_naturalness','\u81ea\u7136\u5ea6'],['difficulty_appropriateness','\u96be\u5ea6\u9002\u5f53\u6027'],['follow_up_quality','\u8ffd\u95ee\u8d28\u91cf'],['topic_coverage','\u8bdd\u9898\u8986\u76d6'],['overall_score','\u603b\u4f53\u8bc4\u5206'],['jd_relevance','JD关联度'],['profile_relevance','偏好匹配度'],['difficulty_adaptation','难度调整']];
+      const scores=items.map(([k,l])=>`<div class="score-card"><div class="score-value ${scoreClass(ev[k])}">${ev[k]!=null?ev[k]:'--'}</div><div class="score-label">${l}</div></div>`).join('');
       const strengths=(ev.strengths||[]).map(x=>`<li class="strength">${esc(x)}</li>`).join('');
       const weaknesses=(ev.weaknesses||[]).map(x=>`<li class="weakness">${esc(x)}</li>`).join('');
       const suggestions=(ev.improvement_suggestions||[]).map(x=>`<li class="suggestion">${esc(x)}</li>`).join('');
@@ -333,6 +423,142 @@ async function showSessionDetail(sid){
     html+='</div></div>';
     c.innerHTML=html;
   }catch(e){c.innerHTML=`<div class="error-banner">\u52a0\u8f7d\u5931\u8d25: ${esc(e.message)}</div><button class="btn-back-sessions" onclick="showSessions()">\u8fd4\u56de\u5217\u8868</button>`}
+}
+
+async function loadSuites(){
+  const sel=$('suite-select');
+  try{
+    const resp=await fetch('/api/suites');
+    const data=await resp.json();
+    const suites=data.suites||[];
+    let opts='<option value="">选择套件...</option>';
+    suites.forEach(s=>{
+      opts+=`<option value="${esc(s.filename)}">${esc(s.name||s.filename)}</option>`;
+    });
+    sel.innerHTML=opts;
+  }catch(e){
+    sel.innerHTML='<option value="">加载失败</option>';
+  }
+}
+
+function onSuiteChange(){
+  const sel=$('suite-select');
+  const btn=$('btn-suite');
+  btn.disabled=!sel.value;
+  btn.style.opacity=sel.value?'1':'0.7';
+}
+
+async function startSuite(){
+  const sel=$('suite-select');
+  const filename=sel.value;
+  if(!filename) return;
+  state.qaPairs=[];state.evaluation=null;state.status='running';state.sessionId=null;
+  $('messages-area').innerHTML='';$('eval-container').innerHTML='';
+  updateStatus('running','套件运行中');
+  $('pulse-dot').className='pulse-dot';
+  const info=$('test-header-info');
+  info.innerHTML=`<span class="test-header-tag">套件: ${esc(filename)}</span>`;
+  showView('testing-view');
+  try{
+    const resp=await fetch('/api/suite/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename})});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const reader=resp.body.getReader();
+    const decoder=new TextDecoder();
+    let buffer='';
+    let testIndex=0,totalTests=0;
+    while(true){
+      const{done,value}=await reader.read();
+      if(done) break;
+      buffer+=decoder.decode(value,{stream:true});
+      const lines=buffer.split('\n');
+      buffer=lines.pop();
+      for(const line of lines){
+        if(line.startsWith('data: ')){
+          try{
+            const ev=JSON.parse(line.slice(6));
+            switch(ev.type){
+              case 'suite_start':
+                totalTests=ev.total||0;
+                updateStatus('running','套件开始，共 '+totalTests+' 个测试');
+                break;
+              case 'test_start':
+                testIndex++;
+                const label=ev.domain+'/'+ev.difficulty+'/'+ev.candidate_style;
+                updateStatus('running','运行测试 '+testIndex+'/'+totalTests+': '+label);
+                addSuiteProgressCard(testIndex,totalTests,label);
+                break;
+              case 'test_done':
+                fillSuiteResult(ev.domain+'/'+ev.difficulty+'/'+ev.candidate_style,ev.overall_score,ev.overall_score>=7);
+                break;
+              case 'test_error':
+                fillSuiteResult('测试 '+testIndex,null,false,ev.error||'未知错误');
+                break;
+              case 'suite_done':
+                state.status='done';
+                $('pulse-dot').className='pulse-dot done';
+                updateStatus('done','套件完成');
+                renderSuiteSummary(ev.summary||ev);
+                break;
+            }
+          }catch(e){console.error('parse error',e)}
+        }
+      }
+    }
+  }catch(e){
+    state.status='error';
+    updateStatus('error','出错: '+e.message);
+    $('pulse-dot').className='pulse-dot error';
+  }
+}
+
+function addSuiteProgressCard(index,total,label){
+  const ma=$('messages-area');
+  const card=document.createElement('div');
+  card.className='qa-card';card.id='suite-test-'+index;
+  card.innerHTML=`<div class="qa-card-header"><span class="qa-round-badge">测试 ${index}/${total}</span></div><div class="msg-block"><div class="msg-label interviewer"><span class="msg-dot interviewer"></span>${esc(label)}</div><div class="msg-content interviewer-bg" id="suite-result-${index}"><div class="typing-indicator">运行中...<span class="typing-cursor"></span></div></div></div>`;
+  ma.appendChild(card);
+  ma.scrollTop=ma.scrollHeight;
+}
+
+function fillSuiteResult(label,score,passed,error){
+  const ma=$('messages-area');
+  const cards=ma.querySelectorAll('.qa-card');
+  const lastCard=cards[cards.length-1];
+  if(!lastCard) return;
+  const resultEl=lastCard.querySelector('[id^="suite-result-"]');
+  if(!resultEl) return;
+  if(error){
+    resultEl.innerHTML=`<div class="msg-content candidate-bg" style="border-left:3px solid #ef4444">${esc(error)}</div>`;
+  }else{
+    const color=passed?'var(--color-interviewer)':'#ef4444';
+    const status=passed?'✓ 通过':'✗ 未通过';
+    resultEl.innerHTML=`<div class="msg-content candidate-bg" style="border-left:3px solid ${color}">${status}${score!=null?' — 评分: '+score:''}</div>`;
+  }
+  ma.scrollTop=ma.scrollHeight;
+}
+
+function renderSuiteSummary(ev){
+  const c=$('eval-container');
+  const s=ev.summary||ev;
+  const passRate=s.pass_rate!=null?(s.pass_rate*100).toFixed(1)+'%':'--';
+  const avgScore=s.avg_overall_score!=null?s.avg_overall_score.toFixed(1):'--';
+  let domainBreakdown='';
+  if(s.by_domain){
+    domainBreakdown='<div class="eval-section"><div class="eval-section-title">按领域</div><ul class="eval-list">'+Object.entries(s.by_domain).map(([k,v])=>`<li>${esc(k)}: 平均 ${v.avg_score!=null?v.avg_score.toFixed(1):'--'}, 通过率 ${v.pass_rate!=null?(v.pass_rate*100).toFixed(0)+'%':'--'}</li>`).join('')+'</ul></div>';
+  }
+  let styleBreakdown='';
+  if(s.by_candidate_style){
+    styleBreakdown='<div class="eval-section"><div class="eval-section-title">按行为模式</div><ul class="eval-list">'+Object.entries(s.by_candidate_style).map(([k,v])=>`<li>${esc(k)}: 平均 ${v.avg_score!=null?v.avg_score.toFixed(1):'--'}, 通过率 ${v.pass_rate!=null?(v.pass_rate*100).toFixed(0)+'%':'--'}</li>`).join('')+'</ul></div>';
+  }
+  const scoreItems=[
+    ['pass_rate','通过率',passRate],
+    ['avg_score','平均评分',avgScore],
+    ['total','总测试数',s.total_tests!=null?s.total_tests:'--'],
+    ['passed','通过数',s.pass_count!=null?s.pass_count:'--']
+  ];
+  const scoresHtml=scoreItems.map(([k,l,v])=>`<div class="score-card"><div class="score-value">${v}</div><div class="score-label">${l}</div></div>`).join('');
+  c.innerHTML=`<div class="eval-panel"><div class="eval-panel-inner"><div class="eval-title">📊 套件结果</div><div class="score-grid">${scoresHtml}</div>${domainBreakdown}${styleBreakdown}</div></div>`;
+  c.scrollIntoView({behavior:'smooth'});
 }
 
 initSetup();

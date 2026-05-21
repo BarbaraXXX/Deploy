@@ -1,0 +1,34 @@
+name: jd_profile_test
+description: JD和Profile集成测试 - 验证面试官是否正确使用上下文信息
+pass_threshold: 7
+tests:
+  - domain: backend
+    difficulty: mid
+    candidate_level: mid
+    candidate_style: cooperative
+    job_description: |
+      岗位：后端开发工程师
+      经验要求：3-5年
+      必需技能：Python, FastAPI, PostgreSQL, Redis
+      核心职责：
+      - 设计和实现RESTful API
+      - 数据库性能优化
+      - 分布式系统设计
+      面试侧重：系统设计、API设计模式
+    profile_company: "华为"
+    profile_position: "AI应用开发"
+  - domain: backend
+    difficulty: mid
+    candidate_level: mid
+    candidate_style: weak
+    job_description: |
+      岗位：后端开发工程师
+      经验要求：3-5年
+      必需技能：Python, FastAPI, PostgreSQL, Redis
+      核心职责：
+      - 设计和实现RESTful API
+      - 数据库性能优化
+      - 分布式系统设计
+      面试侧重：系统设计、API设计模式
+    profile_company: "华为"
+    profile_position: "AI应用开发"
