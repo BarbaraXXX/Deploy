@@ -17,6 +17,9 @@ class TestConfig(BaseModel):
     job_description: str = ""
     profile_company: str = ""
     profile_position: str = ""
+    provider: str = ""
+    candidate_style: str = "cooperative"
+    candidate_weaknesses: list[str] = []
 
 
 class Evaluation(BaseModel):
@@ -29,6 +32,9 @@ class Evaluation(BaseModel):
     weaknesses: list[str]
     summary: str
     improvement_suggestions: list[str]
+    jd_relevance: int = 0           # 0=未使用JD or no JD provided, 1-10=JD使用相关度
+    profile_relevance: int = 0      # 0=未使用Profile or no Profile provided, 1-10=Profile匹配度
+    difficulty_adaptation: int = 0  # 0=无动态调整, 1-10=动态调整能力
 
 
 class TestSession(BaseModel):
