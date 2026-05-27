@@ -6,6 +6,7 @@ import uvicorn
 
 from interview_vectordb.api import api_app
 from interview_vectordb.config import mcp_server_settings
+from interview_vectordb.logging_config import setup_logging
 from interview_vectordb.server import mcp
 
 mcp_app = mcp.streamable_http_app()
@@ -38,6 +39,7 @@ def import_experiences(path: str) -> None:
 
 
 def main() -> None:
+    setup_logging()
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
         if cmd == "import" and len(sys.argv) > 2:

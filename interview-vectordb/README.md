@@ -151,3 +151,50 @@ for (c, p), n in keys.items():
   {"company": "腾讯", "position": "前端", "raw_text": "..."}
 ]
 ```
+
+## 测试
+
+### 运行
+
+```bash
+cd interview-vectordb
+uv sync --group dev
+
+# 运行全部测试
+uv run pytest tests/ -v
+
+# 带覆盖率
+uv run pytest tests/ --cov=interview_vectordb --cov-report=term-missing
+
+# Lint
+uv run ruff check src tests
+```
+
+### 测试结构
+
+```
+tests/
+├── conftest.py          # 环境隔离：自动注入测试用 env vars + tmp_path 目录
+├── test_schema.py       #  6 tests — Pydantic 模型默认值/校验/max_length 约束
+├── test_db.py           # 23 tests — CRUD/LLM mock/聚合策略/markdown fence/批量生成
+├── test_api.py          # 12 tests — REST 全端点/路径校验/错误处理
+└── test_config.py       #  4 tests — 配置默认值/环境覆盖/空 key 强制转换
+```
+
+### 隔离策略
+
+- **环境变量**：覆盖 `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL`，不读真实 `.env`
+- **文件系统**：`data/`/`profiles/`/`experiences/` 全部指向 `tmp_path`
+- **LLM 调用**：mock `OpenAI.chat.completions.create`，返回预设 JSON，不发起真实 API 请求
+- **API 测试**：使用 `httpx.AsyncClient` + `ASGITransport` 直接调 FastAPI，不启动 uvicorn
+
+### 关键模块覆盖率
+
+| 模块 | 覆盖率 | 说明 |
+|---|---|---|
+| `schema.py` | 100% | 数据模型校验 |
+| `api.py` | 97% | REST 端点全覆盖 |
+| `db.py` | 84% | ProfileDB CRUD + 聚合策略（mock LLM） |
+| `config.py` | 93% | 配置解析 |
+| `__main__.py` | 0% | 入口脚本，需集成测试 |
+| `cli.py` | 0% | CLI 交互，需集成测试 |

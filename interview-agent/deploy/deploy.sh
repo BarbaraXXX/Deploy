@@ -23,6 +23,11 @@ if [ -z "${AUTH_SECRET_KEY:-}" ] || [ "$AUTH_SECRET_KEY" = "change-me-in-product
     exit 1
 fi
 
+if [ -z "${AUTH_INVITE_CODE:-}" ]; then
+    echo "Error: AUTH_INVITE_CODE must be set in .env (comma-separated invite codes)"
+    exit 1
+fi
+
 NGINX_CONF="$SCRIPT_DIR/nginx/nginx.conf"
 NGINX_RESOLVED="$SCRIPT_DIR/nginx/nginx.resolved.conf"
 

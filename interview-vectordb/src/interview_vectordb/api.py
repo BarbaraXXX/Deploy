@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 
 from fastapi import FastAPI, HTTPException
@@ -6,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from interview_vectordb.db import ProfileDB, _EXPERIENCES_DIR
 from interview_vectordb.schema import InterviewExperience
+
+logger = logging.getLogger(__name__)
 
 api_app = FastAPI(title="Interview VectorDB API")
 
@@ -25,14 +28,17 @@ _PATH_SEGMENT_RE = re.compile(r'^[\w\u4e00-\u9fff\s\-().&+,]+$')
 def _validate_path_segment(value: str, name: str) -> str:
     stripped = value.strip()
     if not stripped:
+        logger.warning("Invalid path segment %s: empty value", name)
         raise HTTPException(status_code=400, detail=f"{name} must not be empty")
     if ".." in stripped or len(stripped) > 128:
+        logger.warning("Invalid path segment %s: %r", name, stripped)
         raise HTTPException(status_code=400, detail=f"Invalid {name}")
     return stripped
 
 
 @api_app.get("/api/profiles")
 async def list_profiles() -> dict:
+    logger.info("GET /api/profiles")
     profiles = _db.list_profiles()
     return {
         "profiles": [
@@ -54,6 +60,7 @@ async def list_profiles() -> dict:
 async def get_profile(company: str, position: str) -> dict:
     company = _validate_path_segment(company, "company")
     position = _validate_path_segment(position, "position")
+    logger.info("GET /api/profiles/%s/%s", company, position)
     profile = _db.get_profile(company, position)
     if profile is None:
         profile = _db.get_or_generate_profile(company, position)
@@ -64,6 +71,7 @@ async def get_profile(company: str, position: str) -> dict:
 async def delete_profile(company: str, position: str) -> dict:
     company = _validate_path_segment(company, "company")
     position = _validate_path_segment(position, "position")
+    logger.info("DELETE /api/profiles/%s/%s", company, position)
     _db.delete_profile(company, position)
     return {"deleted": f"{company}_{position}"}
 
@@ -72,29 +80,35 @@ async def delete_profile(company: str, position: str) -> dict:
 async def generate_profile(company: str, position: str) -> dict:
     company = _validate_path_segment(company, "company")
     position = _validate_path_segment(position, "position")
+    logger.info("POST /api/profiles/%s/%s/generate", company, position)
     profile = _db.generate_profile(company, position)
     if profile:
         _db.save_profile(profile)
         return profile.model_dump()
+    logger.warning("generate_profile: no experiences for %s/%s", company, position)
     return {"error": "No experiences found for this company/position"}
 
 
 @api_app.get("/api/experiences/count")
 async def experiences_count() -> dict:
+    logger.info("GET /api/experiences/count")
     counts: dict[str, int] = {}
     for path in _EXPERIENCES_DIR.glob("*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             key = f"{data.get('company', '')}_{data.get('position', '')}"
             counts[key] = counts.get(key, 0) + 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to read experience file %s: %s", path, e)
     return {"counts": counts}
 
 
 @api_app.post("/api/experiences/import")
 async def import_experiences(experiences: list[InterviewExperience]) -> dict:
+    logger.info("POST /api/experiences/import count=%d", len(experiences))
     if len(experiences) > _MAX_IMPORT_BATCH:
+        logger.warning("Import rejected: %d > max %d", len(experiences), _MAX_IMPORT_BATCH)
         raise HTTPException(status_code=400, detail=f"Max { _MAX_IMPORT_BATCH} experiences per request")
     ids = _db.add_experiences(experiences)
+    logger.info("Imported %d experiences", len(ids))
     return {"imported": len(ids), "ids": ids}

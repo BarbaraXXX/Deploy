@@ -99,3 +99,57 @@ bash deploy.sh
 ```
 
 Nginx 反代 8000 → 80/443，自动 Let's Encrypt 证书。
+
+## 测试
+
+### 运行
+
+```bash
+cd interview-agent
+uv sync --group dev
+
+# 运行全部测试
+uv run pytest tests/ -v
+
+# 带覆盖率
+uv run pytest tests/ --cov=interview_agent --cov-report=term-missing
+
+# Lint
+uv run ruff check src tests
+```
+
+### 测试结构
+
+```
+tests/
+├── conftest.py          # 环境隔离：自动注入测试用 env vars + tmp_path
+├── test_auth.py         # 12 tests — 注册/登录/JWT签发/验证/过期/删除用户
+├── test_session.py      # 12 tests — 会话过期/trim/CRUD/淘汰/max限制
+├── test_prompts.py      # 12 tests — 领域/难度/JD/Profile注入/格式转义/注入防护
+├── test_jd_parser.py    # 10 tests — 空输入/截断/LLM成功/失败/非法JSON/模型
+├── test_config.py       # 10 tests — 环境变量解析/默认/命名/fallback provider
+├── test_server.py       # 16 tests — 注册登录端点/域名列表/路径消毒/格式化
+└── test_mcp_client.py   #  5 tests — 服务配置构建/工具获取降级
+```
+
+### 隔离策略
+
+所有测试通过 `conftest.py` 的 `autouse` fixture 实现完全隔离：
+
+- **环境变量**：覆盖 `LLM_PROVIDERS`/`AUTH_SECRET_KEY` 等，确保不读真实 `.env`
+- **文件系统**：`users.json` 写入 `tmp_path`，不碰生产数据
+- **LLM 调用**：mock `ChatOpenAI`，不发起真实 API 请求
+- **MCP 连接**：空 `MCP_SERVER_URLS`，跳过真实连接
+
+### 关键模块覆盖率
+
+| 模块 | 覆盖率 | 说明 |
+|---|---|---|
+| `auth.py` | 97% | JWT 签发验证、bcrypt 哈希、token 过期 |
+| `session.py` | 100% | 会话全生命周期：创建/获取/过期/淘汰/删除 |
+| `prompts.py` | 100% | 提示词构建、转义、注入防护 |
+| `jd_parser.py` | 100% | JD 结构化解析（mock LLM） |
+| `logging_config.py` | 100% | 日志初始化 |
+| `mcp_client.py` | 93% | MCP 工具获取降级 |
+| `config.py` | 97% | 多 provider 配置解析 |
+| `server.py` | 61% | SSE 流和静态文件服务需集成测试覆盖 |

@@ -23,11 +23,11 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
-export async function register(username: string, password: string): Promise<{ token: string; username: string }> {
+export async function register(username: string, password: string, inviteCode: string): Promise<{ token: string; username: string }> {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, invite_code: inviteCode }),
   });
   if (!res.ok) {
     const data = await res.json();

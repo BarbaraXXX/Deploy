@@ -4,6 +4,7 @@ from langchain_core.messages import HumanMessage
 
 from interview_agent.agent import build_interview_agent
 from interview_agent.config import llm_settings, mcp_settings
+from interview_agent.logging_config import setup_logging
 from interview_agent.prompts import PRESET_DOMAINS
 
 
@@ -46,6 +47,7 @@ async def run() -> None:
 
 
 def main() -> None:
+    setup_logging()
     asyncio.run(run())
 
 

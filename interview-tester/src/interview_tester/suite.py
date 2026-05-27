@@ -1,13 +1,14 @@
 """Test suite system for batch execution and result aggregation."""
 
-import json
-from datetime import datetime, timezone
+import logging
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel
 
 from .schemas import TestConfig, TestSession
+
+logger = logging.getLogger(__name__)
 
 
 class SuiteTestConfig(BaseModel):
@@ -91,6 +92,10 @@ def expand_matrix(matrix: MatrixConfig) -> list[SuiteTestConfig]:
                         "candidate_style": style,
                     })
                     configs.append(cfg)
+    logger.info(
+        "expand_matrix: produced %d configs (domains=%d, difficulties=%d, levels=%d, styles=%d)",
+        len(configs), len(domains), len(difficulties), len(levels), len(styles),
+    )
     return configs
 
 
@@ -105,13 +110,18 @@ def load_suite(path: Path) -> TestSuite:
     matrix_data = data.get("matrix")
     matrix = MatrixConfig(**matrix_data) if matrix_data else None
 
-    return TestSuite(
+    suite = TestSuite(
         name=data.get("name", "unnamed"),
         description=data.get("description", ""),
         tests=tests,
         matrix=matrix,
         pass_threshold=data.get("pass_threshold", 7),
     )
+    logger.info(
+        "load_suite: loaded %r from %s (tests=%d, has_matrix=%s, pass_threshold=%d)",
+        suite.name, path, len(suite.tests), suite.matrix is not None, suite.pass_threshold,
+    )
+    return suite
 
 
 def resolve_suite(suite: TestSuite) -> list[SuiteTestConfig]:

@@ -32,3 +32,24 @@ allow-direct-references = true
 
 [tool.uv.sources]
 interview-agent = { path = "../interview-agent", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.27.0",
+    "respx>=0.22.0",
+    "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+python_classes = ["!TestConfig", "!TestSession", "!TestSuite"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+

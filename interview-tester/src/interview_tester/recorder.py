@@ -1,8 +1,11 @@
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .schemas import QAPair, TestSession
+
+logger = logging.getLogger(__name__)
 
 
 class SessionRecorder:
@@ -19,6 +22,8 @@ class SessionRecorder:
         path = self.data_dir / f"{self.session.session_id}.json"
         data = self.session.model_dump(exclude_none=False)
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.debug("save: wrote session %s to %s (rounds=%d, status=%s)",
+                     self.session.session_id, path, self.session.total_rounds, self.session.status)
         return path
 
     def mark_completed(self) -> None:

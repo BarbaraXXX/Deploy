@@ -35,16 +35,23 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const INVITE_CODE_EMPTY_MSG = '请输入邀请码';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (isRegister && !inviteCode.trim()) {
+      setError(INVITE_CODE_EMPTY_MSG);
+      return;
+    }
     setLoading(true);
     try {
       const result = isRegister
-        ? await register(username, password)
+        ? await register(username, password, inviteCode)
         : await login(username, password);
       setToken(result.token);
       onLogin(result.username);
@@ -97,6 +104,20 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
               required
             />
           </div>
+
+          {isRegister && (
+            <div className="login-field">
+              <label className="section-label">* 邀请码</label>
+              <input
+                type="text"
+                className="custom-input"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="输入邀请码"
+                required
+              />
+            </div>
+          )}
 
           {error && <div className="login-error">{error}</div>}
 

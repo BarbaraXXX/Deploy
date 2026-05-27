@@ -1,6 +1,9 @@
+import logging
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 _INTERVIEW_AGENT_ENV = Path(__file__).resolve().parent.parent.parent.parent / "interview-agent" / ".env"
 
@@ -19,3 +22,7 @@ class TestSettings(BaseSettings):
 
 
 test_settings = TestSettings()
+logger.debug(
+    "test_settings loaded: data_dir=%s, candidate_temperature=%s, evaluator_temperature=%s",
+    test_settings.data_dir, test_settings.candidate_temperature, test_settings.evaluator_temperature,
+)

@@ -19,3 +19,13 @@ interview-agent/web/node_modules/
 
 # interview-vectordb
 interview-vectordb/.venv/
+
+# interview-tester
+interview-tester/.venv/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.ruff_cache/

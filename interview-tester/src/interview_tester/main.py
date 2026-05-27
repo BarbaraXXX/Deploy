@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import logging
 import random
 from datetime import datetime, timezone
 from pathlib import Path
@@ -8,16 +9,19 @@ from pathlib import Path
 from langchain_core.messages import AIMessage, HumanMessage
 
 from interview_agent.agent import build_interview_agent
-from interview_agent.config import llm_settings, vectordb_settings
+from interview_agent.config import llm_settings
 from interview_agent.jd_parser import parse_jd
 
 from .candidate import build_candidate_llm, generate_candidate_response, get_candidate_system_prompt
 from .config import test_settings
 from .evaluator import evaluate_session
+from .logging_config import setup_logging
 from .recorder import SessionRecorder
 from .schemas import QAPair, TestConfig, TestSession
 from .suite import load_suite, resolve_suite, suite_test_config_to_test_config, compute_summary
-from .utils import is_interview_ending, format_jd, format_profile, fetch_profile
+from .utils import is_interview_ending, format_jd, fetch_profile
+
+logger = logging.getLogger(__name__)
 
 
 async def run_test(config: TestConfig) -> TestSession:
@@ -109,7 +113,7 @@ async def run_test(config: TestConfig) -> TestSession:
 
     recorder.save()
 
-    print(f"\n=== 测试完成 ===")
+    print("\n=== 测试完成 ===")
     print(f"  会话ID: {session_id}")
     print(f"  总轮次: {session.total_rounds}")
     print(f"  总体评分: {evaluation.overall_score}/10")
@@ -190,6 +194,7 @@ async def run_suite(suite_path: str) -> None:
 
 
 def main() -> None:
+    setup_logging()
     parser = argparse.ArgumentParser(description="Interview Tester - 测试面试 Agent 的表现")
     parser.add_argument("--domain", default="backend", help="面试领域 (default: backend)")
     parser.add_argument("--difficulty", default="mid", help="面试难度 junior/mid/senior (default: mid)")

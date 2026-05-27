@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from interview_vectordb.db import ProfileDB
+from interview_vectordb.logging_config import setup_logging
 from interview_vectordb.schema import InterviewExperience
 
 
@@ -46,6 +47,7 @@ def _start_server() -> None:
 
 
 def main() -> None:
+    setup_logging()
     if len(sys.argv) < 2:
         _start_server()
         return

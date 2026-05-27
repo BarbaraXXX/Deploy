@@ -1,9 +1,12 @@
 from langchain_core.messages import BaseMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+import logging
 
 from interview_agent.config import llm_settings
 
 from .config import test_settings
+
+logger = logging.getLogger(__name__)
 
 _VALID_STYLES = {"cooperative", "weak", "evasive", "overconfident", "specific_weakness"}
 
@@ -44,8 +47,10 @@ def get_candidate_system_prompt(
 ) -> str:
     # Fallback: unknown style or specific_weakness without weaknesses → cooperative
     if candidate_style not in _VALID_STYLES:
+        logger.warning("Unknown candidate_style=%r, falling back to 'cooperative'", candidate_style)
         candidate_style = "cooperative"
     if candidate_style == "specific_weakness" and not candidate_weaknesses:
+        logger.warning("candidate_style='specific_weakness' but no weaknesses provided, falling back to 'cooperative'")
         candidate_style = "cooperative"
 
     level_map = {

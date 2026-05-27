@@ -57,6 +57,7 @@ class ProfileDB:
     def save_profile(self, profile: InterviewProfile) -> None:
         path = self._profile_path(profile.company, profile.position)
         self._save_json(path, profile.model_dump())
+        logger.info("Saved profile %s/%s (source_count=%d)", profile.company, profile.position, profile.source_count)
 
     def list_profiles(self) -> list[InterviewProfile]:
         profiles = []
@@ -245,9 +246,11 @@ class ProfileDB:
     def generate_profile(self, company: str, position: str) -> InterviewProfile | None:
         experiences = self.get_experiences(company, position)
         if not experiences:
+            logger.info("generate_profile: no experiences for %s/%s", company, position)
             return None
 
         n = len(experiences)
+        logger.info("generate_profile: %s/%s n=%d", company, position, n)
 
         if n == 1:
             return self._generate_from_single(company, position, experiences[0])

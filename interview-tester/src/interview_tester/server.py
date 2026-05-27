@@ -1,4 +1,3 @@
-import asyncio
 import json
 import random
 from datetime import datetime, timezone
@@ -18,6 +17,7 @@ from interview_agent.jd_parser import parse_jd
 from .candidate import build_candidate_llm, generate_candidate_response, get_candidate_system_prompt
 from .config import test_settings
 from .evaluator import evaluate_session
+from .logging_config import setup_logging
 from .recorder import SessionRecorder
 from .schemas import QAPair, TestConfig, TestSession
 from .suite import load_suite, resolve_suite, suite_test_config_to_test_config, compute_summary
@@ -354,4 +354,5 @@ if _INDEX_HTML.is_file():
 
 def run() -> None:
     import uvicorn
+    setup_logging()
     uvicorn.run(app, host="0.0.0.0", port=8765)

@@ -1,4 +1,6 @@
 import json
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -12,20 +14,37 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from interview_agent.auth import authenticate, get_current_user, register
-from interview_agent.config import llm_settings, vectordb_settings
+from interview_agent.config import auth_settings, llm_settings, server_settings, vectordb_settings
+from interview_agent.logging_config import setup_logging
 from interview_agent.prompts import PRESET_DOMAINS
 from interview_agent.session import session_manager
+
+logger = logging.getLogger(__name__)
 
 _STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "web" / "dist"
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
-app = FastAPI(title="Interview Agent")
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    if auth_settings.secret_key == "change-me-in-production":
+        raise RuntimeError(
+            "AUTH_SECRET_KEY is still the default 'change-me-in-production'. "
+            "Set a strong secret key via AUTH_SECRET_KEY in your .env file."
+        )
+    yield
+
+
+app = FastAPI(title="Interview Agent", lifespan=_lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+setup_logging()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=server_settings.get_cors_origins(),
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -36,6 +55,7 @@ _MAX_MESSAGE_LEN = 4000
 class RegisterRequest(BaseModel):
     username: str
     password: str
+    invite_code: str = ""
 
 
 class LoginRequest(BaseModel):
@@ -50,8 +70,11 @@ async def api_register(request: Request, req: RegisterRequest) -> dict:
         raise HTTPException(status_code=400, detail="Username must be 2-32 characters")
     if len(req.password) < 6:
         raise HTTPException(status_code=400, detail="Password too short")
+    valid_codes = auth_settings.get_invite_codes()
+    if valid_codes and not req.invite_code.strip():
+        raise HTTPException(status_code=400, detail="Invite code is required")
     try:
-        register(req.username, req.password)
+        register(req.username, req.password, req.invite_code)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     token = authenticate(req.username, req.password)
@@ -182,7 +205,7 @@ async def _fetch_profile(company: str, position: str) -> str:
                     return ""
                 return _format_profile(data)
     except Exception:
-        pass
+        logger.warning("profile fetch failed company=%s position=%s", safe_company, safe_position, exc_info=True)
     return ""
 
 
@@ -208,7 +231,7 @@ async def list_profiles(username: str = Depends(get_current_user)) -> dict:
             if resp.status_code == 200:
                 return resp.json()
     except Exception:
-        pass
+        logger.warning("vectordb list_profiles failed", exc_info=True)
     return {"profiles": []}
 
 
@@ -241,6 +264,10 @@ async def create_session(
         structured_profile = structured_profile[:_MAX_PROFILE_SIZE] + "\n[truncated]"
 
     session_id = await session_manager.create(req.domain, req.difficulty, username, structured_jd, structured_profile)
+    logger.info(
+        "create_session user=%s session=%s domain=%s difficulty=%s jd_len=%d profile_len=%d",
+        username, session_id, req.domain, req.difficulty, len(structured_jd), len(structured_profile),
+    )
     return {"session_id": session_id}
 
 
@@ -252,6 +279,8 @@ async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user
     session = session_manager.get(req.session_id, username)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    logger.info("chat_stream start user=%s session=%s msg_len=%d", username, req.session_id, len(req.message))
 
     human_msg = HumanMessage(content=req.message)
     session.messages.append(human_msg)
@@ -278,6 +307,7 @@ async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user
 
         session.messages.append(AIMessage(content=full_content))
         session.trim_messages()
+        logger.info("chat_stream end user=%s session=%s reply_len=%d", username, req.session_id, len(full_content))
         yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
@@ -315,4 +345,5 @@ if _STATIC_DIR.is_dir():
 def run() -> None:
     import uvicorn
 
+    setup_logging()
     uvicorn.run(app, host="0.0.0.0", port=8000)

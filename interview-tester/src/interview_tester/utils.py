@@ -1,8 +1,11 @@
 from urllib.parse import quote
 
 import httpx
+import logging
 
 from interview_agent.config import vectordb_settings
+
+logger = logging.getLogger(__name__)
 
 _END_KEYWORDS = ("面试结束", "感谢参与", "本次面试", "总结", "overall")
 _MAX_JD_FIELD_LEN = 200
@@ -93,8 +96,13 @@ async def fetch_profile(company: str, position: str) -> str:
             if resp.status_code == 200:
                 data = resp.json()
                 if not isinstance(data, dict):
+                    logger.warning("fetch_profile: unexpected payload type for %s/%s", safe_company, safe_position)
                     return ""
                 return format_profile(data)
+            logger.warning(
+                "fetch_profile: non-200 response for %s/%s (status=%s)",
+                safe_company, safe_position, resp.status_code,
+            )
     except Exception:
-        pass
+        logger.warning("fetch_profile: request failed for %s/%s", safe_company, safe_position, exc_info=True)
     return ""

@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -8,6 +9,8 @@ from interview_agent.config import llm_settings
 
 from .config import test_settings
 from .schemas import Evaluation, TestSession
+
+logger = logging.getLogger(__name__)
 
 
 def build_evaluator_prompt(session: TestSession) -> str:
@@ -145,6 +148,7 @@ async def evaluate_session(session: TestSession) -> Evaluation:
         data = _parse_eval_json(response.content)
         return Evaluation(**data)
     except Exception:
+        logger.warning("evaluate_session: failed to parse evaluation JSON", exc_info=True)
         return Evaluation(
             style_naturalness=0,
             difficulty_appropriateness=0,

@@ -351,3 +351,55 @@ interview-tester
 ├── httpx >= 0.27.0
 └── pyyaml >= 6.0
 ```
+
+## 测试
+
+### 运行
+
+```bash
+cd interview-tester
+uv sync --group dev
+
+# 运行全部测试
+uv run pytest tests/ -v
+
+# 带覆盖率
+uv run pytest tests/ --cov=interview_tester --cov-report=term-missing
+
+# Lint
+uv run ruff check src tests
+```
+
+### 测试结构
+
+```
+tests/
+├── conftest.py          # 环境隔离：自动注入测试用 env vars + tmp_path 数据目录
+├── test_schemas.py      #  7 tests — Pydantic 模型默认值/字段/校验
+├── test_utils.py        # 19 tests — 结束检测/路径消毒/JD和Profile格式化/fetch mock
+├── test_candidate.py    # 12 tests — 5种行为模式/水平等级/fallback/LLM构建
+├── test_evaluator.py    # 10 tests — 评估prompt构建/维度动态/JD和Profile条件/JSON解析
+├── test_suite.py        # 17 tests — 矩阵展开/YAML加载/resolve/汇总统计/分组
+└── test_recorder.py     #  6 tests — QA记录/文件保存/完成/错误标记
+```
+
+### 隔离策略
+
+- **环境变量**：覆盖 `LLM_PROVIDERS`/`AUTH_SECRET_KEY` 等，确保不读真实 `.env`
+- **文件系统**：`data/sessions/` 指向 `tmp_path`，不碰生产数据
+- **LLM 调用**：mock `llm_settings.get_provider()` 返回假 provider，不发起真实 API 请求
+- **HTTP 请求**：mock `httpx.AsyncClient`（通过 monkeypatch），不连接真实 vectordb
+
+### 关键模块覆盖率
+
+| 模块 | 覆盖率 | 说明 |
+|---|---|---|
+| `schemas.py` | 100% | 数据模型 |
+| `config.py` | 100% | 配置读取 |
+| `recorder.py` | 100% | 会话记录和持久化 |
+| `suite.py` | 100% | 套件加载、矩阵展开、汇总统计 |
+| `utils.py` | 96% | 纯函数全覆盖（fetch_profile mock） |
+| `candidate.py` | 92% | 行为模式 prompt 构建 |
+| `evaluator.py` | 84% | 评估 prompt + JSON 解析（evaluate_session 需 LLM） |
+| `main.py` | 0% | CLI 入口 + LLM 编排，需集成测试 |
+| `server.py` | 0% | FastAPI SSE 流，需集成测试 |

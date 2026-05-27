@@ -1,8 +1,11 @@
 import json
+import logging
 from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 _ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
 
@@ -78,6 +81,10 @@ class AuthSettings(BaseSettings):
 
     secret_key: str = "change-me-in-production"
     token_expire_hours: int = 24
+    invite_codes: str = ""
+
+    def get_invite_codes(self) -> list[str]:
+        return [c.strip() for c in self.invite_codes.split(",") if c.strip()]
 
 
 class VectorDBSettings(BaseSettings):
@@ -91,7 +98,38 @@ class VectorDBSettings(BaseSettings):
     base_url: str = "http://localhost:9000"
 
 
+class ServerSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="SERVER_",
+        env_file=str(_ENV_FILE),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    cors_origins: str = "http://localhost:5173,http://localhost:8000"
+
+    def get_cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+
 llm_settings = LLMSettings()
 mcp_settings = MCPSettings()
 auth_settings = AuthSettings()
 vectordb_settings = VectorDBSettings()
+server_settings = ServerSettings()
+
+
+def _log_loaded_settings() -> None:
+    try:
+        provider = llm_settings.get_provider()
+        masked = (provider.api_key[:8] + "...") if len(provider.api_key) > 8 else "***"
+        logger.info(
+            "settings loaded llm_provider=%s model=%s base_url=%s api_key=%s mcp_urls=%s vectordb=%s",
+            llm_settings.default_provider, provider.model, provider.base_url, masked,
+            mcp_settings.server_urls or "(none)", vectordb_settings.base_url,
+        )
+    except Exception:
+        logger.warning("failed to log loaded settings", exc_info=True)
+
+
+_log_loaded_settings()

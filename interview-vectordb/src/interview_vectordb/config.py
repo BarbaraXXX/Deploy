@@ -1,7 +1,10 @@
+import logging
 from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 _ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
 
@@ -35,5 +38,21 @@ class MCPServerSettings(BaseSettings):
     port: int = 9000
 
 
+def _mask_api_key(key: str) -> str:
+    if not key or key == "not-needed":
+        return key
+    if len(key) <= 8:
+        return "***"
+    return f"{key[:4]}***{key[-4:]}"
+
+
 llm_settings = LLMSettings()
 mcp_server_settings = MCPServerSettings()
+
+logger.info(
+    "Loaded LLMSettings: base_url=%s model=%s api_key=%s",
+    llm_settings.base_url,
+    llm_settings.model,
+    _mask_api_key(llm_settings.api_key),
+)
+logger.info("Loaded MCPServerSettings: port=%d", mcp_server_settings.port)
