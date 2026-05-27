@@ -476,15 +476,18 @@ function App() {
     setSessionId('');
   };
 
-  if (view === 'login') {
-    return <LoginView onLogin={handleLogin} />;
-  }
-
-  if (view === 'setup') {
-    return <SetupView onStart={handleStart} username={username} onLogout={handleLogout} />;
-  }
-
-  return <ChatView sessionId={sessionId} domain={domain} difficulty={difficulty} onEnd={handleEnd} />;
+  return (
+    <>
+      {view === 'login' && <LoginView onLogin={handleLogin} />}
+      {view === 'setup' && <SetupView onStart={handleStart} username={username} onLogout={handleLogout} />}
+      {view === 'chat' && <ChatView sessionId={sessionId} domain={domain} difficulty={difficulty} onEnd={handleEnd} />}
+      <footer className="site-footer">
+        <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer">
+          浙ICP备2026035635号
+        </a>
+      </footer>
+    </>
+  );
 }
 
 export default App;
