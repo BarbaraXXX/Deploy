@@ -91,10 +91,41 @@ VECTORDB_BASE_URL=http://localhost:9000
 
 ## Docker 部署
 
+### 0. 准备 .env
+
+```bash
+cp interview-agent/.env.example interview-agent/.env
+```
+
+编辑 `interview-agent/.env`，填写以下**生产环境必需**的配置项：
+
+| 配置项 | 说明 | 怎么填 |
+|---|---|---|
+| `LLM_PROVIDERS` | LLM API 配置（JSON） | 填入你的 DeepSeek API Key |
+| `AUTH_SECRET_KEY` | JWT 签名密钥 | `python3 -c "import secrets; print(secrets.token_urlsafe(48))"` 生成 |
+| `AUTH_INVITE_CODE` | 注册邀请码，逗号分隔多个 | 自己定，如 `mycode1,mycode2` |
+| `SERVER_CORS_ORIGINS` | CORS 允许的来源 | `https://你的域名`，本地开发用 `http://localhost:5173,http://localhost:8000` |
+| `SSL_DOMAIN` | 你的域名 | 如 `foolzheng.top` |
+| `SSL_EMAIL` | Let's Encrypt 通知邮箱 | 如 `admin@foolzheng.top` |
+
+### 1. 部署
+
 ```bash
 cd interview-agent/deploy
-# 编辑 .env 和 deploy.sh 中的域名/邮箱
 bash deploy.sh
+```
+
+`deploy.sh` 会检查上述必须配置项是否已填写，然后自动申请 SSL 证书并启动全部服务。
+
+### 2. 更新部署
+
+代码更新后：
+
+```bash
+# 服务器上
+cd /path/to/InterviewLG
+git pull origin main
+cd interview-agent/deploy && bash deploy.sh
 ```
 
 ## CLI 模式（无前端）
