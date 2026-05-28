@@ -11,7 +11,9 @@ if [ ! -f "$ENV_FILE" ]; then
     exit 1
 fi
 
+set -a
 source "$ENV_FILE"
+set +a
 
 if [ -z "${SSL_DOMAIN:-}" ]; then
     echo "Error: SSL_DOMAIN not set in .env"
