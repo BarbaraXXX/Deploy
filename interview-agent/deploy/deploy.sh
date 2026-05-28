@@ -59,16 +59,19 @@ events {
 }
 
 http {
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
     server {
         listen 80;
         server_name _;
+        set $app_upstream app:8000;
 
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
         }
 
         location / {
-            proxy_pass http://app:8000;
+            proxy_pass http://$app_upstream;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
