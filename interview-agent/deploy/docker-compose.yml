@@ -23,8 +23,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.resolved.conf:/etc/nginx/nginx.conf:ro
-      - certbot-www:/var/www/certbot:ro
-      - certbot-conf:/etc/letsencrypt:ro
+      - ../data/certbot/www:/var/www/certbot:ro
+      - ../data/certbot/conf:/etc/letsencrypt:ro
     depends_on:
       - app
 
@@ -32,10 +32,7 @@ services:
     image: certbot/certbot
     container_name: interview-agent-certbot
     volumes:
-      - certbot-www:/var/www/certbot
-      - certbot-conf:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
-
-volumes:
-  certbot-www:
-  certbot-conf:
+      - ../data/certbot/www:/var/www/certbot
+      - ../data/certbot/conf:/etc/letsencrypt
+    entrypoint: ""
+    command: /bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'

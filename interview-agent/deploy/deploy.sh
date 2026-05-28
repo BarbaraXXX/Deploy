@@ -31,6 +31,9 @@ fi
 NGINX_CONF="$SCRIPT_DIR/nginx/nginx.conf"
 NGINX_RESOLVED="$SCRIPT_DIR/nginx/nginx.resolved.conf"
 
+# 确保证书目录存在（bind mount 需要宿主目录已存在）
+mkdir -p "$PROJECT_DIR/data/certbot/www" "$PROJECT_DIR/data/certbot/conf"
+
 envsubst '$SSL_DOMAIN' < "$NGINX_CONF" > "$NGINX_RESOLVED"
 
 CERT_DIR="$PROJECT_DIR/data/certbot/conf/live/$SSL_DOMAIN"
