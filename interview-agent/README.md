@@ -14,8 +14,9 @@ src/interview_agent/
   server.py       FastAPI 入口      路由、认证、SSE、vectordb 代理
   agent.py        LangGraph 图      StateGraph(MessagesState) + MCP 工具
   prompts.py      系统提示词         build_system_prompt(domain, difficulty, jd, profile)
-  session.py      会话管理          内存中 InterviewSession，TTL 1h
-  auth.py         JWT 认证          bcrypt + JWT，用户数据 data/users.json
+  session.py      会话管理          内存 Agent + SQLite 会话/消息，支持重启后重建
+  db.py           SQLite 存储        users / sessions / messages
+  auth.py         JWT 认证          bcrypt + HttpOnly Cookie
   config.py       配置               LLMSettings / MCPSettings / AuthSettings / VectorDBSettings
   jd_parser.py    JD 结构化          LLM 提取 StructuredJD，注入提示词
   mcp_client.py   MCP 客户端         连接外部 MCP Server
@@ -71,14 +72,13 @@ npm run build        # 生产构建到 dist/
 LLM_DEFAULT_PROVIDER=deepseek
 LLM_PROVIDERS={"local":{"base_url":"http://10.2.133.86:10087/v1","api_key":"","model":"Qwen_Qwen3.6-27B-Q6_K_M.gguf"},"deepseek":{"base_url":"https://api.deepseek.com/v1","api_key":"sk-xxx","model":"deepseek-chat"}}
 
-# MCP（可选，连接 vectordb）
-MCP_SERVER_URLS=http://localhost:9000/mcp
-
 # Profile 代理（可选，连接 vectordb REST API）
 VECTORDB_BASE_URL=http://localhost:9000
+VECTORDB_ADMIN_TOKEN=change-me-too
 
 # 认证（生产必须改）
 AUTH_SECRET_KEY=change-me-in-production
+AUTH_COOKIE_SECURE=false
 ```
 
 ### 常见问题
@@ -88,7 +88,7 @@ AUTH_SECRET_KEY=change-me-in-production
 | 前端没显示新功能 | 浏览器缓存 | Cmd+Shift+R 硬刷新 |
 | LLM 502 错误 | .env 未加载或 API 不可达 | 检查 `llm_settings.get_provider()` 输出 |
 | 面试偏好下拉为空 | vectordb 未启动或未生成 Profile | 先启动 vectordb，运行 `regen` |
-| 旧账号无法登录 | 密码格式从 SHA256 迁移到 bcrypt | 删除 data/users.json 中旧格式条目，重新注册 |
+| 旧账号无法登录 | 用户存储已迁移到 SQLite，启动时会从旧 users.json 一次性导入 | 确认 `data/interview.db` 可写，查看启动日志 |
 
 ## Docker 部署
 
@@ -98,7 +98,7 @@ cd interview-agent/deploy
 bash deploy.sh
 ```
 
-Nginx 反代 8000 → 80/443，自动 Let's Encrypt 证书。
+Nginx 反代 app → 80/443，自动 Let's Encrypt 证书；vectordb 只在 Docker 内网暴露，不映射公网端口。
 
 ## 测试
 
@@ -137,7 +137,7 @@ tests/
 所有测试通过 `conftest.py` 的 `autouse` fixture 实现完全隔离：
 
 - **环境变量**：覆盖 `LLM_PROVIDERS`/`AUTH_SECRET_KEY` 等，确保不读真实 `.env`
-- **文件系统**：`users.json` 写入 `tmp_path`，不碰生产数据
+- **文件系统**：SQLite 测试库写入 `tmp_path`，不碰生产数据
 - **LLM 调用**：mock `ChatOpenAI`，不发起真实 API 请求
 - **MCP 连接**：空 `MCP_SERVER_URLS`，跳过真实连接
 

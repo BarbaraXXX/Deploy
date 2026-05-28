@@ -1,32 +1,14 @@
 const API_BASE = '/api';
 
-let _token: string | null = localStorage.getItem('token');
-
-export function getToken(): string | null {
-  return _token;
-}
-
-export function setToken(token: string | null): void {
-  _token = token;
-  if (token) {
-    localStorage.setItem('token', token);
-  } else {
-    localStorage.removeItem('token');
-  }
-}
-
 function authHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (_token) {
-    headers['Authorization'] = `Bearer ${_token}`;
-  }
-  return headers;
+  return { 'Content-Type': 'application/json' };
 }
 
-export async function register(username: string, password: string, inviteCode: string): Promise<{ token: string; username: string }> {
+export async function register(username: string, password: string, inviteCode: string): Promise<{ username: string }> {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify({ username, password, invite_code: inviteCode }),
   });
   if (!res.ok) {
@@ -36,10 +18,11 @@ export async function register(username: string, password: string, inviteCode: s
   return res.json();
 }
 
-export async function login(username: string, password: string): Promise<{ token: string; username: string }> {
+export async function login(username: string, password: string): Promise<{ username: string }> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify({ username, password }),
   });
   if (!res.ok) {
@@ -47,6 +30,21 @@ export async function login(username: string, password: string): Promise<{ token
     throw new Error(data.detail || 'Login failed');
   }
   return res.json();
+}
+
+export async function getMe(): Promise<{ username: string } | null> {
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    credentials: 'same-origin',
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
 }
 
 export async function fetchDomains(): Promise<string[]> {
@@ -58,6 +56,7 @@ export async function fetchDomains(): Promise<string[]> {
 export async function fetchProfiles(): Promise<{key: string; company: string; position: string; source_count: number}[]> {
   const res = await fetch(`${API_BASE}/profiles`, {
     headers: authHeaders(),
+    credentials: 'same-origin',
   });
   if (!res.ok) return [];
   const data = await res.json();
@@ -68,6 +67,7 @@ export async function createSession(domain: string, difficulty: string, jobDescr
   const res = await fetch(`${API_BASE}/sessions`, {
     method: 'POST',
     headers: authHeaders(),
+    credentials: 'same-origin',
     body: JSON.stringify({
       domain,
       difficulty,
@@ -77,7 +77,6 @@ export async function createSession(domain: string, difficulty: string, jobDescr
     }),
   });
   if (res.status === 401) {
-    setToken(null);
     throw new Error('UNAUTHORIZED');
   }
   const data = await res.json();
@@ -94,11 +93,11 @@ export function streamChat(
   fetch(`${API_BASE}/chat/stream`, {
     method: 'POST',
     headers: authHeaders(),
+    credentials: 'same-origin',
     body: JSON.stringify({ session_id: sessionId, message }),
     signal: controller.signal,
   }).then(async (res) => {
     if (res.status === 401) {
-      setToken(null);
       onDone();
       return;
     }

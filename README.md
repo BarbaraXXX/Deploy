@@ -118,6 +118,7 @@ vim interview-agent/.env
 | `LLM_PROVIDERS` | LLM API 配置（JSON） | 填入 DeepSeek API Key |
 | `AUTH_SECRET_KEY` | JWT 签名密钥 | `python3 -c "import secrets; print(secrets.token_urlsafe(48))"` 生成 |
 | `AUTH_INVITE_CODE` | 注册邀请码（逗号分隔多个） | `mycode1,mycode2` |
+| `VECTORDB_ADMIN_TOKEN` | VectorDB 写接口管理令牌 | `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` 生成 |
 | `SERVER_CORS_ORIGINS` | CORS 允许的来源 | `https://foolzheng.top` |
 | `SSL_DOMAIN` | 你的域名 | `foolzheng.top` |
 | `SSL_EMAIL` | Let's Encrypt 通知邮箱 | `admin@foolzheng.top` |
@@ -134,7 +135,7 @@ bash deploy.sh
 2. 创建证书存储目录
 3. 生成 nginx 配置文件（含域名替换）
 4. 若首次运行：写临时 HTTP nginx → 启动服务 → certbot 申请 SSL 证书 → 切回 HTTPS nginx
-5. 构建 Docker 镜像并启动全部服务
+5. 构建 Docker 镜像并启动全部服务（app、内网 vectordb、nginx、certbot）
 
 部署完成后访问 `https://你的域名`，证书会自动续期（certbot 容器每 12 小时检查）。
 
@@ -181,10 +182,12 @@ sudo mkswap /swapfile && sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-**注册报错 `Permission denied: /app/data/users.json`**
-→ `data/` 目录权限问题：
+**注册报错 `Permission denied: /app/data/interview.db`**
+→ `data/` 目录权限问题。不要使用 `chmod 777`，改为让当前部署用户拥有数据目录：
 ```bash
-chmod 777 /home/foolzheng/InterviewLG/data
+sudo mkdir -p /home/foolzheng/InterviewLG/data
+sudo chown -R "$USER:$USER" /home/foolzheng/InterviewLG/data
+chmod 750 /home/foolzheng/InterviewLG/data
 ```
 
 **证书已存在但 nginx 不加载**

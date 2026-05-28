@@ -1,11 +1,11 @@
-FROM node:23-slim AS frontend
+FROM node:22-slim AS frontend
 WORKDIR /build
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-FROM python:3.13-slim
+FROM python:3.12-slim
 WORKDIR /app
 RUN groupadd -r app && useradd -r -g app -d /app app
 COPY pyproject.toml ./

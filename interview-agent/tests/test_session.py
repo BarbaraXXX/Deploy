@@ -2,110 +2,135 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from interview_agent import session as session_module
-from interview_agent.session import InterviewSession, SessionManager
+from interview_agent.db import (
+    create_user,
+    get_next_message_seq,
+    get_session,
+    get_session_messages,
+    init_db,
+)
+from interview_agent.session import SessionManager
 
 
 @pytest.fixture
 def mock_agent_build(monkeypatch):
+    calls = []
+
     async def fake_build(*args, **kwargs):
+        calls.append((args, kwargs))
         return MagicMock()
 
     monkeypatch.setattr("interview_agent.session.build_interview_agent", fake_build)
+    return calls
 
 
-def _make_session() -> InterviewSession:
-    return InterviewSession(agent=MagicMock(), domain="backend", difficulty="mid", username="u1")
+async def _make_user(username: str) -> int:
+    return await create_user(username, "hash")
 
 
-def test_session_is_expired_false():
-    s = _make_session()
-    assert s.is_expired() is False
-
-
-def test_session_is_expired_true(monkeypatch):
-    s = _make_session()
-    monkeypatch.setattr(session_module.time, "monotonic", lambda: s.created_at + session_module._SESSION_TTL_SECONDS + 1)
-    assert s.is_expired() is True
-
-
-def test_session_trim_messages():
-    s = _make_session()
-    s.messages = [MagicMock() for _ in range(session_module._MAX_MESSAGES_PER_SESSION + 50)]
-    s.trim_messages()
-    assert len(s.messages) == session_module._MAX_MESSAGES_PER_SESSION
-
-
-def test_session_trim_messages_under_limit():
-    s = _make_session()
-    msgs = [MagicMock() for _ in range(10)]
-    s.messages = list(msgs)
-    s.trim_messages()
-    assert s.messages == msgs
-
-
-async def test_session_manager_create(mock_agent_build):
+async def test_session_manager_create(mock_agent_build, isolate_env):
+    await init_db()
+    user_id = await _make_user("alice")
     mgr = SessionManager()
-    sid = await mgr.create("backend", "mid", "alice")
+    sid = await mgr.create("backend", "mid", "alice", user_id)
     assert isinstance(sid, str)
-    assert sid in mgr._sessions
+    assert sid in mgr._agents
+    row = await get_session(sid)
+    assert row is not None
+    assert row["username"] == "alice"
 
 
-async def test_session_manager_get(mock_agent_build):
+async def test_session_manager_get_agent(mock_agent_build, isolate_env):
+    await init_db()
+    user_id = await _make_user("alice")
     mgr = SessionManager()
-    sid = await mgr.create("backend", "mid", "alice")
-    got = mgr.get(sid, "alice")
+    sid = await mgr.create("backend", "mid", "alice", user_id)
+    got = mgr.get_agent(sid, "alice")
     assert got is not None
     assert got.username == "alice"
 
 
-async def test_session_manager_get_expired(mock_agent_build, monkeypatch):
+async def test_session_manager_get_wrong_user(mock_agent_build, isolate_env):
+    await init_db()
+    user_id = await _make_user("alice")
     mgr = SessionManager()
-    sid = await mgr.create("backend", "mid", "alice")
-    s = mgr._sessions[sid]
-    monkeypatch.setattr(session_module.time, "monotonic", lambda: s.created_at + session_module._SESSION_TTL_SECONDS + 1)
-    got = mgr.get(sid, "alice")
-    assert got is None
-    assert sid not in mgr._sessions
+    sid = await mgr.create("backend", "mid", "alice", user_id)
+    assert mgr.get_agent(sid, "bob") is None
 
 
-async def test_session_manager_get_wrong_user(mock_agent_build):
+async def test_session_manager_rebuild_from_db(mock_agent_build, isolate_env):
+    await init_db()
+    user_id = await _make_user("alice")
     mgr = SessionManager()
-    sid = await mgr.create("backend", "mid", "alice")
-    assert mgr.get(sid, "bob") is None
+    sid = await mgr.create("backend", "mid", "alice", user_id, "jd", "profile")
+    mgr._agents.clear()
+
+    rebuilt = await mgr.get_or_rebuild_agent(sid, "alice", user_id)
+    assert rebuilt is not None
+    assert rebuilt.domain == "backend"
+    assert rebuilt.difficulty == "mid"
+    assert sid in mgr._agents
+    assert mock_agent_build[-1][0] == ("backend", "mid", "jd", "profile")
 
 
-async def test_session_manager_delete(mock_agent_build):
+async def test_session_manager_rebuild_wrong_user_denied(mock_agent_build, isolate_env):
+    await init_db()
+    alice_id = await _make_user("alice")
+    bob_id = await _make_user("bob")
     mgr = SessionManager()
-    sid = await mgr.create("backend", "mid", "alice")
-    mgr.delete(sid, "alice")
-    assert mgr.get(sid, "alice") is None
+    sid = await mgr.create("backend", "mid", "alice", alice_id)
+    mgr._agents.clear()
+
+    assert await mgr.get_or_rebuild_agent(sid, "bob", bob_id) is None
 
 
-async def test_session_manager_delete_wrong_user(mock_agent_build):
+async def test_session_manager_delete(mock_agent_build, isolate_env):
+    await init_db()
+    user_id = await _make_user("alice")
     mgr = SessionManager()
-    sid = await mgr.create("backend", "mid", "alice")
-    mgr.delete(sid, "bob")
-    assert mgr.get(sid, "alice") is not None
+    sid = await mgr.create("backend", "mid", "alice", user_id)
+    assert await mgr.delete(sid, "alice", user_id) is True
+    assert mgr.get_agent(sid, "alice") is None
+    assert await get_session(sid) is None
 
 
-async def test_session_manager_evict_expired(mock_agent_build, monkeypatch):
+async def test_session_manager_delete_wrong_user(mock_agent_build, isolate_env):
+    await init_db()
+    alice_id = await _make_user("alice")
+    bob_id = await _make_user("bob")
     mgr = SessionManager()
-    sid1 = await mgr.create("backend", "mid", "alice")
-    old = mgr._sessions[sid1]
-    monkeypatch.setattr(session_module.time, "monotonic", lambda: old.created_at + session_module._SESSION_TTL_SECONDS + 1)
-    sid2 = await mgr.create("backend", "mid", "bob")
-    assert sid1 not in mgr._sessions
-    assert sid2 in mgr._sessions
+    sid = await mgr.create("backend", "mid", "alice", alice_id)
+    assert await mgr.delete(sid, "bob", bob_id) is False
+    assert mgr.get_agent(sid, "alice") is not None
+    assert await get_session(sid) is not None
 
 
-async def test_session_manager_max_sessions(mock_agent_build):
+async def test_session_manager_max_agents(mock_agent_build, isolate_env):
+    from interview_agent import session as session_module
+
+    await init_db()
     mgr = SessionManager()
     created_ids = []
-    for i in range(session_module._MAX_SESSIONS):
-        sid = await mgr.create("backend", "mid", f"u{i}")
+    for i in range(session_module._MAX_AGENTS + 1):
+        user_id = await _make_user(f"u{i}")
+        sid = await mgr.create("backend", "mid", f"u{i}", user_id)
         created_ids.append(sid)
-    new_sid = await mgr.create("backend", "mid", "newest")
-    assert created_ids[0] not in mgr._sessions
-    assert new_sid in mgr._sessions
-    assert len(mgr._sessions) == session_module._MAX_SESSIONS
+    assert created_ids[0] not in mgr._agents
+    assert created_ids[-1] in mgr._agents
+    assert len(mgr._agents) == session_module._MAX_AGENTS
+
+
+async def test_append_message_uses_monotonic_seq_after_trim(mock_agent_build, isolate_env):
+    await init_db()
+    user_id = await _make_user("alice")
+    mgr = SessionManager()
+    sid = await mgr.create("backend", "mid", "alice", user_id)
+
+    for i in range(205):
+        await mgr.append_message(sid, "user", f"m{i}")
+
+    rows = await get_session_messages(sid, 500)
+    assert len(rows) == 200
+    assert rows[0]["content"] == "m5"
+    assert rows[-1]["seq"] == 204
+    assert await get_next_message_seq(sid) == 205

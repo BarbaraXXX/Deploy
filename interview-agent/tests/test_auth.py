@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -6,48 +5,65 @@ import jwt
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
+from starlette.requests import Request
 
 from interview_agent import auth
 from interview_agent.config import auth_settings
+from interview_agent.db import get_user_by_username, init_db
+
+
+def _make_request(token_cookie: str | None = None) -> Request:
+    headers = []
+    if token_cookie:
+        headers.append((b"cookie", f"{auth_settings.cookie_name}={token_cookie}".encode()))
+    return Request({"type": "http", "headers": headers})
 
 
 def _make_creds(token: str) -> HTTPAuthorizationCredentials:
     return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
 
-def test_register_success(isolate_env):
-    auth.register("alice", "secret123")
-    db_path = auth._DB_PATH
-    assert db_path.is_file()
-    data = json.loads(db_path.read_text(encoding="utf-8"))
-    assert "alice" in data
-    stored = data["alice"]["password_hash"]
-    assert bcrypt.checkpw(b"secret123", stored.encode())
-    assert stored != "secret123"
+async def test_register_success(isolate_env):
+    await init_db()
+    await auth.register("alice", "secret123")
+    user = await get_user_by_username("alice")
+    assert user is not None
+    assert bcrypt.checkpw(b"secret123", user["password_hash"].encode())
+    assert user["password_hash"] != "secret123"
 
 
-def test_register_duplicate(isolate_env):
-    auth.register("bob", "password1")
+async def test_register_duplicate(isolate_env):
+    await init_db()
+    await auth.register("bob", "password1")
     with pytest.raises(ValueError):
-        auth.register("bob", "password2")
+        await auth.register("bob", "password2")
 
 
-def test_authenticate_success(isolate_env):
-    auth.register("carol", "mypassword")
-    token = auth.authenticate("carol", "mypassword")
+async def test_register_rejects_invalid_username(isolate_env):
+    await init_db()
+    with pytest.raises(ValueError):
+        await auth.register("../bob", "password1")
+
+
+async def test_authenticate_success(isolate_env):
+    await init_db()
+    await auth.register("carol", "mypassword")
+    token = await auth.authenticate("carol", "mypassword")
     assert isinstance(token, str)
     assert token.count(".") == 2
 
 
-def test_authenticate_wrong_password(isolate_env):
-    auth.register("dave", "rightpass")
+async def test_authenticate_wrong_password(isolate_env):
+    await init_db()
+    await auth.register("dave", "rightpass")
     with pytest.raises(ValueError):
-        auth.authenticate("dave", "wrongpass")
+        await auth.authenticate("dave", "wrongpass")
 
 
-def test_authenticate_nonexistent_user(isolate_env):
+async def test_authenticate_nonexistent_user(isolate_env):
+    await init_db()
     with pytest.raises(ValueError):
-        auth.authenticate("ghost", "whatever")
+        await auth.authenticate("ghost", "whatever")
 
 
 def test_create_token_has_exp_claim(isolate_env):
@@ -57,49 +73,57 @@ def test_create_token_has_exp_claim(isolate_env):
     assert "exp" in payload
 
 
-def test_get_current_user_valid_token(isolate_env):
-    auth.register("frank", "passw0rd")
+async def test_get_current_user_valid_cookie_token(isolate_env):
+    await init_db()
+    await auth.register("frank", "passw0rd")
     token = auth._create_token("frank")
-    username = auth.get_current_user(credentials=_make_creds(token))
+    username = await auth.get_current_user(request=_make_request(token))
     assert username == "frank"
 
 
-def test_get_current_user_expired_token(isolate_env):
-    auth.register("grace", "passw0rd")
+async def test_get_current_user_valid_bearer_fallback(isolate_env):
+    await init_db()
+    await auth.register("frank", "passw0rd")
+    token = auth._create_token("frank")
+    username = await auth.get_current_user(request=_make_request(), credentials=_make_creds(token))
+    assert username == "frank"
+
+
+async def test_get_current_user_expired_token(isolate_env):
+    await init_db()
+    await auth.register("grace", "passw0rd")
     expired_payload = {
         "sub": "grace",
         "exp": datetime.now(UTC) - timedelta(hours=1),
     }
     token = jwt.encode(expired_payload, auth_settings.secret_key, algorithm="HS256")
     with pytest.raises(HTTPException) as exc:
-        auth.get_current_user(credentials=_make_creds(token))
+        await auth.get_current_user(request=_make_request(token))
     assert exc.value.status_code == 401
 
 
-def test_get_current_user_invalid_token(isolate_env):
+async def test_get_current_user_invalid_token(isolate_env):
+    await init_db()
     with pytest.raises(HTTPException) as exc:
-        auth.get_current_user(credentials=_make_creds("not.a.valid.token"))
+        await auth.get_current_user(request=_make_request("not.a.valid.token"))
     assert exc.value.status_code == 401
 
 
-def test_get_current_user_deleted_user(isolate_env):
-    auth.register("henry", "passw0rd")
+async def test_get_current_user_deleted_user(isolate_env):
+    await init_db()
+    await auth.register("henry", "passw0rd")
     token = auth._create_token("henry")
-    users = auth._load_users()
-    del users["henry"]
-    auth._save_users(users)
+    user = await get_user_by_username("henry")
+    assert user is not None
+    # User deletion is not a product API yet; delete directly for token validation coverage.
+    import aiosqlite
+    from interview_agent import db as db_module
+
+    conn = await aiosqlite.connect(str(db_module._DB_PATH))
+    await conn.execute("DELETE FROM users WHERE id = ?", (user["id"],))
+    await conn.commit()
+    await conn.close()
+
     with pytest.raises(HTTPException) as exc:
-        auth.get_current_user(credentials=_make_creds(token))
+        await auth.get_current_user(request=_make_request(token))
     assert exc.value.status_code == 401
-
-
-def test_load_users_empty(isolate_env):
-    assert auth._load_users() == {}
-
-
-def test_save_users_creates_dir(isolate_env, tmp_path, monkeypatch):
-    nested = tmp_path / "deep" / "nest" / "users.json"
-    monkeypatch.setattr(auth, "_DB_PATH", nested)
-    auth._save_users({"x": {"password_hash": "h"}})
-    assert nested.is_file()
-    assert json.loads(nested.read_text(encoding="utf-8")) == {"x": {"password_hash": "h"}}

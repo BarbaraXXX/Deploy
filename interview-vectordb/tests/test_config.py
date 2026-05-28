@@ -1,5 +1,8 @@
 
 
+import json
+
+
 def test_llm_settings_defaults(monkeypatch):
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
@@ -33,6 +36,26 @@ def test_llm_settings_coerce_empty_key(monkeypatch):
 
     s = LLMSettings(_env_file=None)
     assert s.api_key == "not-needed"
+
+
+def test_llm_settings_from_providers(monkeypatch):
+    monkeypatch.setenv("LLM_DEFAULT_PROVIDER", "deepseek")
+    monkeypatch.setenv(
+        "LLM_PROVIDERS",
+        json.dumps(
+            {
+                "local": {"base_url": "http://local/v1", "api_key": "", "model": "local-model"},
+                "deepseek": {"base_url": "https://api.deepseek.com/v1", "api_key": "sk-test", "model": "deepseek-chat"},
+            }
+        ),
+    )
+
+    from interview_vectordb.config import LLMSettings
+
+    s = LLMSettings(_env_file=None)
+    assert s.base_url == "https://api.deepseek.com/v1"
+    assert s.api_key == "sk-test"
+    assert s.model == "deepseek-chat"
 
 
 def test_mcp_server_settings_default_port(monkeypatch):

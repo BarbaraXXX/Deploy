@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from interview_agent.config import auth_settings
@@ -11,10 +11,24 @@ from interview_agent.db import create_user, get_user_by_username
 
 logger = logging.getLogger(__name__)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
+
+_USERNAME_MIN_LEN = 2
+_USERNAME_MAX_LEN = 32
+_PASSWORD_MIN_LEN = 6
+_PASSWORD_MAX_LEN = 256
 
 
 async def register(username: str, password: str, invite_code: str = "") -> None:
+    username = username.strip()
+    invite_code = invite_code.strip()
+    if len(username) < _USERNAME_MIN_LEN or len(username) > _USERNAME_MAX_LEN:
+        raise ValueError("Invalid username")
+    if not username.replace("_", "").replace("-", "").isalnum():
+        raise ValueError("Invalid username")
+    if len(password) < _PASSWORD_MIN_LEN or len(password) > _PASSWORD_MAX_LEN:
+        raise ValueError("Invalid password")
+
     existing = await get_user_by_username(username)
     if existing is not None:
         logger.warning("register failed: username already exists user=%s", username)
@@ -31,6 +45,9 @@ async def register(username: str, password: str, invite_code: str = "") -> None:
 
 
 async def authenticate(username: str, password: str) -> str:
+    username = username.strip()
+    if len(password) > _PASSWORD_MAX_LEN:
+        raise ValueError("Invalid credentials")
     user = await get_user_by_username(username)
     if user is None:
         logger.warning("login failed (no such user) user=%s", username)
@@ -52,11 +69,18 @@ def _create_token(username: str) -> str:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> str:
+    token = request.cookies.get(auth_settings.cookie_name)
+    if not token and credentials is not None:
+        token = credentials.credentials
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
     try:
         payload = jwt.decode(
-            credentials.credentials,
+            token,
             auth_settings.secret_key,
             algorithms=["HS256"],
         )

@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,10 @@ class AuthSettings(BaseSettings):
 
     secret_key: str = "change-me-in-production"
     token_expire_hours: int = 24
-    invite_codes: str = ""
+    invite_codes: str = Field(default="", validation_alias=AliasChoices("AUTH_INVITE_CODES", "AUTH_INVITE_CODE"))
+    cookie_name: str = "interviewlg_token"
+    cookie_secure: bool = False
+    cookie_samesite: str = "lax"
 
     def get_invite_codes(self) -> list[str]:
         return [c.strip() for c in self.invite_codes.split(",") if c.strip()]

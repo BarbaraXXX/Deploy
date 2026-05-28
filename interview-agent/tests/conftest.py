@@ -43,6 +43,6 @@ def isolate_env(monkeypatch, tmp_path):
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    monkeypatch.setattr("interview_agent.auth._DB_PATH", data_dir / "users.json")
+    monkeypatch.setattr("interview_agent.db._DB_PATH", data_dir / "interview.db")
 
     yield data_dir

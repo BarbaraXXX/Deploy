@@ -33,6 +33,7 @@ def test_db(mock_openai, isolate_env, monkeypatch):
     fresh_db = ProfileDB()
     monkeypatch.setattr(api_module, "_db", fresh_db)
     monkeypatch.setattr(api_module, "_EXPERIENCES_DIR", isolate_env / "experiences")
+    monkeypatch.setattr(api_module.security_settings, "admin_token", "test-admin-token")
     return fresh_db
 
 
@@ -80,7 +81,7 @@ async def test_get_profile_not_found_triggers_generate(client, test_db):
 
 async def test_delete_profile(client, test_db):
     test_db.save_profile(InterviewProfile(company="A", position="B"))
-    r = await client.delete("/api/profiles/A/B")
+    r = await client.delete("/api/profiles/A/B", headers={"X-Admin-Token": "test-admin-token"})
     assert r.status_code == 200
     assert r.json() == {"deleted": "A_B"}
     assert test_db.get_profile("A", "B") is None
@@ -89,7 +90,7 @@ async def test_delete_profile(client, test_db):
 async def test_generate_profile(client, test_db):
     from interview_vectordb.schema import InterviewExperience
     test_db.add_experiences([InterviewExperience(company="A", position="B", raw_text="text")])
-    r = await client.post("/api/profiles/A/B/generate")
+    r = await client.post("/api/profiles/A/B/generate", headers={"X-Admin-Token": "test-admin-token"})
     assert r.status_code == 200
     body = r.json()
     assert body["company"] == "A"
@@ -97,7 +98,7 @@ async def test_generate_profile(client, test_db):
 
 
 async def test_generate_profile_no_experiences(client):
-    r = await client.post("/api/profiles/No/Such/generate")
+    r = await client.post("/api/profiles/No/Such/generate", headers={"X-Admin-Token": "test-admin-token"})
     assert r.status_code == 200
     assert r.json() == {"error": "No experiences found for this company/position"}
 
@@ -121,7 +122,7 @@ async def test_import_experiences(client, test_db):
         {"company": "A", "position": "B", "raw_text": "x"},
         {"company": "C", "position": "D", "raw_text": "y"},
     ]
-    r = await client.post("/api/experiences/import", json=payload)
+    r = await client.post("/api/experiences/import", json=payload, headers={"X-Admin-Token": "test-admin-token"})
     assert r.status_code == 200
     body = r.json()
     assert body["imported"] == 2
@@ -130,8 +131,18 @@ async def test_import_experiences(client, test_db):
 
 async def test_import_experiences_too_many(client):
     payload = [{"company": "A", "position": "B", "raw_text": "x"} for _ in range(501)]
-    r = await client.post("/api/experiences/import", json=payload)
+    r = await client.post("/api/experiences/import", json=payload, headers={"X-Admin-Token": "test-admin-token"})
     assert r.status_code == 400
+
+
+async def test_admin_write_requires_token(client, test_db):
+    r = await client.delete("/api/profiles/A/B")
+    assert r.status_code == 403
+
+
+async def test_admin_write_rejects_wrong_token(client, test_db):
+    r = await client.post("/api/profiles/A/B/generate", headers={"X-Admin-Token": "wrong"})
+    assert r.status_code == 403
 
 
 async def test_validate_path_segment_empty(client):

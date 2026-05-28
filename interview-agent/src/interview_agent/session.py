@@ -10,8 +10,9 @@ from interview_agent.db import (
     create_message,
     create_session,
     delete_expired_sessions,
-    delete_session,
-    get_message_count,
+    delete_session_for_user,
+    get_next_message_seq,
+    get_session_for_user,
     get_session_messages,
     trim_session_messages,
     update_session_status,
@@ -68,6 +69,7 @@ class SessionManager:
         )
 
         self._agents[session_id] = InterviewSession(agent, domain, difficulty, username)
+        self._evict_agents()
         logger.info("session created id=%s user=%s domain=%s difficulty=%s", session_id, username, domain, difficulty)
         return session_id
 
@@ -77,6 +79,33 @@ class SessionManager:
             return None
         if username is not None and ses.username != username:
             return None
+        self._agents.move_to_end(session_id)
+        return ses
+
+    async def get_or_rebuild_agent(
+        self,
+        session_id: str,
+        username: str,
+        user_id: int,
+    ) -> InterviewSession | None:
+        ses = self.get_agent(session_id, username)
+        if ses is not None:
+            return ses
+
+        row = await get_session_for_user(session_id, user_id)
+        if row is None or row["status"] != "active":
+            return None
+
+        agent = await build_interview_agent(
+            row["domain"],
+            row["difficulty"],
+            row["structured_jd"],
+            row["structured_profile"],
+        )
+        ses = InterviewSession(agent, row["domain"], row["difficulty"], username)
+        self._agents[session_id] = ses
+        self._evict_agents()
+        logger.info("agent rebuilt from db session=%s user=%s", session_id, username)
         return ses
 
     async def load_messages(self, session_id: str) -> list[BaseMessage]:
@@ -90,19 +119,20 @@ class SessionManager:
         return messages
 
     async def append_message(self, session_id: str, role: str, content: str) -> None:
-        seq = await get_message_count(session_id)
+        seq = await get_next_message_seq(session_id)
         await create_message(session_id, role, content, seq)
         await trim_session_messages(session_id, _MAX_MESSAGES_PER_SESSION)
 
     async def end_session(self, session_id: str) -> None:
         await update_session_status(session_id, "completed")
 
-    async def delete(self, session_id: str, username: str | None = None) -> None:
+    async def delete(self, session_id: str, username: str, user_id: int) -> bool:
         ses = self._agents.get(session_id)
-        if ses is not None and (username is None or ses.username == username):
+        if ses is not None and ses.username == username:
             self._agents.pop(session_id, None)
-        await delete_session(session_id)
-        logger.info("session deleted id=%s", session_id)
+        deleted = await delete_session_for_user(session_id, user_id)
+        logger.info("session delete requested id=%s user=%s deleted=%s", session_id, username, deleted)
+        return deleted
 
 
 session_manager = SessionManager()

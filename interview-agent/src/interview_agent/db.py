@@ -14,6 +14,7 @@ _MAX_MESSAGES_PER_SESSION = 200
 
 
 async def get_db() -> aiosqlite.Connection:
+    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = await aiosqlite.connect(str(_DB_PATH))
     db.row_factory = aiosqlite.Row
     await db.execute("PRAGMA journal_mode=WAL")
@@ -58,6 +59,7 @@ async def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, seq);
             CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+            CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(id, user_id);
         """)
         await db.commit()
         logger.info("database initialized at %s", _DB_PATH)
@@ -148,6 +150,20 @@ async def get_session(session_id: str) -> dict | None:
         await db.close()
 
 
+async def get_session_for_user(session_id: str, user_id: int) -> dict | None:
+    db = await get_db()
+    try:
+        async with db.execute(
+            "SELECT id, user_id, username, domain, difficulty, structured_jd, structured_profile, "
+            "status, created_at, ended_at FROM sessions WHERE id = ? AND user_id = ?",
+            (session_id, user_id),
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+    finally:
+        await db.close()
+
+
 async def update_session_status(session_id: str, status: str) -> None:
     db = await get_db()
     try:
@@ -207,6 +223,22 @@ async def delete_session(session_id: str) -> None:
         await db.close()
 
 
+async def delete_session_for_user(session_id: str, user_id: int) -> bool:
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "DELETE FROM sessions WHERE id = ? AND user_id = ?",
+            (session_id, user_id),
+        )
+        await db.commit()
+        deleted = cursor.rowcount > 0
+        if deleted:
+            logger.info("session deleted id=%s user_id=%s", session_id, user_id)
+        return deleted
+    finally:
+        await db.close()
+
+
 # ── messages ───────────────────────────────────────────────────────
 
 
@@ -245,6 +277,19 @@ async def get_message_count(session_id: str) -> int:
         ) as cursor:
             row = await cursor.fetchone()
             return row["cnt"] if row else 0
+    finally:
+        await db.close()
+
+
+async def get_next_message_seq(session_id: str) -> int:
+    db = await get_db()
+    try:
+        async with db.execute(
+            "SELECT COALESCE(MAX(seq), -1) + 1 as next_seq FROM messages WHERE session_id = ?",
+            (session_id,),
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row["next_seq"] if row else 0
     finally:
         await db.close()
 

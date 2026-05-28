@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { fetchDomains, createSession, fetchProfiles, streamChat, getToken, setToken, login, register } from './api';
+import { fetchDomains, createSession, fetchProfiles, streamChat, getMe, logout, login, register } from './api';
 
-type View = 'login' | 'setup' | 'chat';
+type View = 'loading' | 'login' | 'setup' | 'chat';
 
 interface Message {
   role: 'user' | 'ai';
@@ -53,7 +53,6 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
       const result = isRegister
         ? await register(username, password, inviteCode)
         : await login(username, password);
-      setToken(result.token);
       onLogin(result.username);
     } catch (err) {
       setError(err instanceof Error ? err.message : '操作失败');
@@ -432,16 +431,21 @@ function ChatView({
 }
 
 function App() {
-  const [view, setView] = useState<View>('login');
+  const [view, setView] = useState<View>('loading');
   const [sessionId, setSessionId] = useState('');
   const [domain, setDomain] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    if (getToken()) {
-      setView('setup');
-    }
+    void getMe().then((me) => {
+      if (me) {
+        setUsername(me.username);
+        setView('setup');
+      } else {
+        setView('login');
+      }
+    });
   }, []);
 
   const handleLogin = (user: string) => {
@@ -449,8 +453,8 @@ function App() {
     setView('setup');
   };
 
-  const handleLogout = () => {
-    setToken(null);
+  const handleLogout = async () => {
+    await logout();
     setUsername('');
     setView('login');
   };
@@ -478,6 +482,7 @@ function App() {
 
   return (
     <>
+      {view === 'loading' && <div className="setup-view" />}
       {view === 'login' && <LoginView onLogin={handleLogin} />}
       {view === 'setup' && <SetupView onStart={handleStart} username={username} onLogout={handleLogout} />}
       {view === 'chat' && <ChatView sessionId={sessionId} domain={domain} difficulty={difficulty} onEnd={handleEnd} />}

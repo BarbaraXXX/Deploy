@@ -4,11 +4,15 @@ from fastapi.testclient import TestClient
 
 from interview_agent import server as server_module
 from interview_agent.auth import get_current_user
+from interview_agent.db import init_db
 from interview_agent.jd_parser import StructuredJD
 
 
 @pytest.fixture
 def client(isolate_env):
+    import anyio
+
+    anyio.run(init_db)
     return TestClient(server_module.app)
 
 
@@ -23,8 +27,8 @@ def test_register_success(client):
     resp = client.post("/api/auth/register", json={"username": "alice", "password": "secret1"})
     assert resp.status_code == 200
     body = resp.json()
-    assert "token" in body
     assert body["username"] == "alice"
+    assert "interviewlg_token" in resp.cookies
 
 
 def test_register_short_username(client):
@@ -37,11 +41,17 @@ def test_register_short_password(client):
     assert resp.status_code == 400
 
 
+def test_register_invalid_username(client):
+    resp = client.post("/api/auth/register", json={"username": "../alice", "password": "secret1"})
+    assert resp.status_code == 400
+
+
 def test_login_success(client):
     client.post("/api/auth/register", json={"username": "bob", "password": "secret1"})
     resp = client.post("/api/auth/login", json={"username": "bob", "password": "secret1"})
     assert resp.status_code == 200
-    assert "token" in resp.json()
+    assert resp.json() == {"username": "bob"}
+    assert "interviewlg_token" in resp.cookies
 
 
 def test_login_wrong_password(client):

@@ -7,6 +7,8 @@ def isolate_env(monkeypatch, tmp_path):
     monkeypatch.setenv("LLM_API_KEY", "test-key")
     monkeypatch.setenv("LLM_MODEL", "test-model")
     monkeypatch.setenv("MCP_SERVER_PORT", "9000")
+    monkeypatch.setenv("VECTORDB_ADMIN_TOKEN", "test-admin-token")
+    monkeypatch.setenv("VECTORDB_CORS_ORIGINS", "")
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()

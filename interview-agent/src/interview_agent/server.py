@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -66,32 +66,65 @@ class LoginRequest(BaseModel):
     password: str
 
 
+def _set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=auth_settings.cookie_name,
+        value=token,
+        max_age=auth_settings.token_expire_hours * 3600,
+        httponly=True,
+        secure=auth_settings.cookie_secure,
+        samesite=auth_settings.cookie_samesite,
+        path="/",
+    )
+
+
+def _clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=auth_settings.cookie_name,
+        httponly=True,
+        secure=auth_settings.cookie_secure,
+        samesite=auth_settings.cookie_samesite,
+        path="/",
+    )
+
+
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")
-async def api_register(request: Request, req: RegisterRequest) -> dict:
-    if len(req.username) < 2 or len(req.username) > 32:
+async def api_register(request: Request, response: Response, req: RegisterRequest) -> dict:
+    username = req.username.strip()
+    if len(username) < 2 or len(username) > 32:
         raise HTTPException(status_code=400, detail="Username must be 2-32 characters")
-    if len(req.password) < 6:
+    if not username.replace("_", "").replace("-", "").isalnum():
+        raise HTTPException(status_code=400, detail="Username may only contain letters, numbers, underscores, and hyphens")
+    if len(req.password) < 6 or len(req.password) > 256:
         raise HTTPException(status_code=400, detail="Password too short")
     valid_codes = auth_settings.get_invite_codes()
     if valid_codes and not req.invite_code.strip():
         raise HTTPException(status_code=400, detail="Invite code is required")
     try:
-        await register(req.username, req.password, req.invite_code)
+        await register(username, req.password, req.invite_code)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    token = await authenticate(req.username, req.password)
-    return {"token": token, "username": req.username}
+    token = await authenticate(username, req.password)
+    _set_auth_cookie(response, token)
+    return {"username": username}
 
 
 @app.post("/api/auth/login")
 @limiter.limit("10/minute")
-async def api_login(request: Request, req: LoginRequest) -> dict:
+async def api_login(request: Request, response: Response, req: LoginRequest) -> dict:
     try:
         token = await authenticate(req.username, req.password)
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"token": token, "username": req.username}
+    _set_auth_cookie(response, token)
+    return {"username": req.username.strip()}
+
+
+@app.post("/api/auth/logout")
+async def api_logout(response: Response) -> dict:
+    _clear_auth_cookie(response)
+    return {"ok": True}
 
 
 @app.get("/api/auth/me")
@@ -286,7 +319,11 @@ async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user
     if len(req.message) > _MAX_MESSAGE_LEN:
         raise HTTPException(status_code=400, detail="Message too long")
 
-    ses = session_manager.get_agent(req.session_id, username)
+    user = await get_user_by_username(username)
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    ses = await session_manager.get_or_rebuild_agent(req.session_id, username, user["id"])
     if ses is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -327,7 +364,12 @@ async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user
 async def delete_session(
     session_id: str, username: str = Depends(get_current_user)
 ) -> dict:
-    await session_manager.delete(session_id, username)
+    user = await get_user_by_username(username)
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    deleted = await session_manager.delete(session_id, username, user["id"])
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
     return {"ok": True}
 
 

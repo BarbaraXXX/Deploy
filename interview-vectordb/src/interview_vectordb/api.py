@@ -2,9 +2,10 @@ import json
 import logging
 import re
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from interview_vectordb.config import security_settings
 from interview_vectordb.db import ProfileDB, _EXPERIENCES_DIR
 from interview_vectordb.schema import InterviewExperience
 
@@ -14,7 +15,7 @@ api_app = FastAPI(title="Interview VectorDB API")
 
 api_app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=security_settings.get_cors_origins(),
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -34,6 +35,12 @@ def _validate_path_segment(value: str, name: str) -> str:
         logger.warning("Invalid path segment %s: %r", name, stripped)
         raise HTTPException(status_code=400, detail=f"Invalid {name}")
     return stripped
+
+
+async def require_admin_token(x_admin_token: str = Header(default="")) -> None:
+    expected = security_settings.admin_token.strip()
+    if not expected or x_admin_token != expected:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
 @api_app.get("/api/profiles")
@@ -67,7 +74,7 @@ async def get_profile(company: str, position: str) -> dict:
     return profile.model_dump()
 
 
-@api_app.delete("/api/profiles/{company}/{position}")
+@api_app.delete("/api/profiles/{company}/{position}", dependencies=[Depends(require_admin_token)])
 async def delete_profile(company: str, position: str) -> dict:
     company = _validate_path_segment(company, "company")
     position = _validate_path_segment(position, "position")
@@ -76,7 +83,7 @@ async def delete_profile(company: str, position: str) -> dict:
     return {"deleted": f"{company}_{position}"}
 
 
-@api_app.post("/api/profiles/{company}/{position}/generate")
+@api_app.post("/api/profiles/{company}/{position}/generate", dependencies=[Depends(require_admin_token)])
 async def generate_profile(company: str, position: str) -> dict:
     company = _validate_path_segment(company, "company")
     position = _validate_path_segment(position, "position")
@@ -103,7 +110,7 @@ async def experiences_count() -> dict:
     return {"counts": counts}
 
 
-@api_app.post("/api/experiences/import")
+@api_app.post("/api/experiences/import", dependencies=[Depends(require_admin_token)])
 async def import_experiences(experiences: list[InterviewExperience]) -> dict:
     logger.info("POST /api/experiences/import count=%d", len(experiences))
     if len(experiences) > _MAX_IMPORT_BATCH:
