@@ -1,13 +1,15 @@
 """SQLite database layer for users, sessions, and messages."""
 
 import logging
+import os
 from pathlib import Path
 
 import aiosqlite
 
 logger = logging.getLogger(__name__)
 
-_DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "interview.db"
+_DATA_DIR = Path(os.getenv("INTERVIEW_AGENT_DATA_DIR", Path.cwd() / "data"))
+_DB_PATH = _DATA_DIR / "interview.db"
 
 _TTL_SECONDS = 3600
 _MAX_MESSAGES_PER_SESSION = 200

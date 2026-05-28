@@ -11,6 +11,8 @@ services:
     environment:
       VECTORDB_BASE_URL: http://vectordb:9000
       AUTH_COOKIE_SECURE: "true"
+      INTERVIEW_AGENT_APP_ROOT: /app
+      INTERVIEW_AGENT_DATA_DIR: /app/data
     volumes:
       - ../../data:/app/data
     expose:
@@ -35,6 +37,7 @@ services:
     environment:
       MCP_SERVER_PORT: "9000"
       VECTORDB_CORS_ORIGINS: ""
+      VECTORDB_DATA_DIR: /app/data
     volumes:
       - ../../data/vectordb:/app/data
     expose:

@@ -2,13 +2,12 @@
 
 import json
 import logging
-from pathlib import Path
 
-from interview_agent.db import create_user, get_db, init_db
+from interview_agent.db import _DATA_DIR, create_user, get_db, init_db
 
 logger = logging.getLogger(__name__)
 
-_JSON_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "users.json"
+_JSON_PATH = _DATA_DIR / "users.json"
 _BAK_PATH = _JSON_PATH.with_suffix(".json.bak")
 
 

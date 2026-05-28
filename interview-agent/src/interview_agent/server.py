@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -22,7 +23,8 @@ from interview_agent.session import session_manager
 
 logger = logging.getLogger(__name__)
 
-_STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "web" / "dist"
+_APP_ROOT = Path(os.getenv("INTERVIEW_AGENT_APP_ROOT", Path.cwd()))
+_STATIC_DIR = _APP_ROOT / "web" / "dist"
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 

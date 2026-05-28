@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import uuid
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from .config import llm_settings
 
 logger = logging.getLogger(__name__)
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+_DATA_DIR = Path(os.getenv("VECTORDB_DATA_DIR", Path.cwd() / "data"))
 _PROFILES_DIR = _DATA_DIR / "profiles"
 _EXPERIENCES_DIR = _DATA_DIR / "experiences"
 
