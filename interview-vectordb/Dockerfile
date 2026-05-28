@@ -1,11 +1,13 @@
 FROM python:3.12-slim
 ARG PYPI_INDEX_URL=https://pypi.org/simple
 ARG UV_VERSION=0.11.16
+ARG APP_UID=10001
+ARG APP_GID=10001
 ENV PIP_INDEX_URL=${PYPI_INDEX_URL} \
     UV_INDEX_URL=${PYPI_INDEX_URL}
 
 WORKDIR /app
-RUN groupadd -r app && useradd -r -g app -d /app app
+RUN groupadd -g "${APP_GID}" app && useradd -u "${APP_UID}" -g app -d /app -M -s /usr/sbin/nologin app
 
 COPY pyproject.toml uv.lock ./
 COPY src/ src/

@@ -15,6 +15,9 @@ set -a
 source "$ENV_FILE"
 set +a
 
+APP_UID="${APP_UID:-10001}"
+APP_GID="${APP_GID:-10001}"
+
 if [ -z "${SSL_DOMAIN:-}" ]; then
     echo "Error: SSL_DOMAIN not set in .env"
     exit 1
@@ -40,6 +43,8 @@ NGINX_RESOLVED="$SCRIPT_DIR/nginx/nginx.resolved.conf"
 
 # 确保证书目录存在（bind mount 需要宿主目录已存在）
 mkdir -p "$PROJECT_DIR/data/certbot/www" "$PROJECT_DIR/data/certbot/conf" "$PROJECT_DIR/../data/vectordb"
+mkdir -p "$PROJECT_DIR/../data/vectordb/profiles" "$PROJECT_DIR/../data/vectordb/experiences"
+chown -R "$APP_UID:$APP_GID" "$PROJECT_DIR/../data"
 
 envsubst '$SSL_DOMAIN' < "$NGINX_CONF" > "$NGINX_RESOLVED"
 
