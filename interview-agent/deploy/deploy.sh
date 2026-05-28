@@ -79,7 +79,9 @@ http {
 NGINX_HTTP
 
     cd "$SCRIPT_DIR"
-    docker compose up -d nginx app
+    docker compose build vectordb
+    docker compose build app
+    docker compose up -d vectordb app nginx
     sleep 5
 
     docker compose run --rm certbot certbot certonly \
@@ -96,7 +98,9 @@ fi
 
 echo "=== Starting services ==="
 cd "$SCRIPT_DIR"
-docker compose up -d --build
+docker compose build vectordb
+docker compose build app
+docker compose up -d
 
 echo ""
 echo "=== Done ==="
