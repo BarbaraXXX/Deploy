@@ -1,84 +1,108 @@
 import logging
-import time
 import uuid
 from collections import OrderedDict
 
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.runnables import Runnable
 
 from interview_agent.agent import build_interview_agent
+from interview_agent.db import (
+    create_message,
+    create_session,
+    delete_expired_sessions,
+    delete_session,
+    get_message_count,
+    get_session_messages,
+    trim_session_messages,
+    update_session_status,
+)
 
 logger = logging.getLogger(__name__)
 
-_MAX_SESSIONS = 100
+_MAX_AGENTS = 100
 _MAX_MESSAGES_PER_SESSION = 200
-_SESSION_TTL_SECONDS = 3600
 
 
 class InterviewSession:
-    def __init__(
-        self, agent: object, domain: str, difficulty: str, username: str, structured_jd: str = "", structured_profile: str = ""
-    ) -> None:
+    """Thin wrapper: agent (in-memory) + metadata from DB."""
+
+    def __init__(self, agent: Runnable, domain: str, difficulty: str, username: str) -> None:
         self.agent = agent
         self.domain = domain
         self.difficulty = difficulty
         self.username = username
-        self.structured_jd = structured_jd
-        self.structured_profile = structured_profile
-        self.messages: list[BaseMessage] = []
-        self.created_at: float = time.monotonic()
-
-    def is_expired(self) -> bool:
-        return (time.monotonic() - self.created_at) > _SESSION_TTL_SECONDS
-
-    def trim_messages(self) -> None:
-        if len(self.messages) > _MAX_MESSAGES_PER_SESSION:
-            self.messages = self.messages[-_MAX_MESSAGES_PER_SESSION:]
 
 
 class SessionManager:
     def __init__(self) -> None:
-        self._sessions: OrderedDict[str, InterviewSession] = OrderedDict()
+        self._agents: OrderedDict[str, InterviewSession] = OrderedDict()
 
-    def _evict_expired(self) -> None:
-        expired = [sid for sid, s in self._sessions.items() if s.is_expired()]
-        for sid in expired:
-            del self._sessions[sid]
-            logger.info("session evicted (expired) session=%s", sid)
+    def _evict_agents(self) -> None:
+        while len(self._agents) > _MAX_AGENTS:
+            oldest_id, _ = self._agents.popitem(last=False)
+            logger.info("agent evicted (max agents) session=%s", oldest_id)
 
     async def create(
-        self, domain: str, difficulty: str, username: str, structured_jd: str = "", structured_profile: str = ""
+        self,
+        domain: str,
+        difficulty: str,
+        username: str,
+        user_id: int,
+        structured_jd: str = "",
+        structured_profile: str = "",
     ) -> str:
-        self._evict_expired()
-        if len(self._sessions) >= _MAX_SESSIONS:
-            oldest_id, _ = self._sessions.popitem(last=False)
-            logger.info("session evicted (max sessions) session=%s", oldest_id)
+        await delete_expired_sessions()
+        self._evict_agents()
 
         agent = await build_interview_agent(domain, difficulty, structured_jd, structured_profile)
         session_id = uuid.uuid4().hex
-        self._sessions[session_id] = InterviewSession(
-            agent, domain, difficulty, username, structured_jd, structured_profile
+
+        await create_session(
+            session_id=session_id,
+            user_id=user_id,
+            username=username,
+            domain=domain,
+            difficulty=difficulty,
+            structured_jd=structured_jd,
+            structured_profile=structured_profile,
         )
-        logger.info("session created session=%s user=%s domain=%s difficulty=%s", session_id, username, domain, difficulty)
+
+        self._agents[session_id] = InterviewSession(agent, domain, difficulty, username)
+        logger.info("session created id=%s user=%s domain=%s difficulty=%s", session_id, username, domain, difficulty)
         return session_id
 
-    def get(self, session_id: str, username: str | None = None) -> InterviewSession | None:
-        session = self._sessions.get(session_id)
-        if session is None:
+    def get_agent(self, session_id: str, username: str | None = None) -> InterviewSession | None:
+        ses = self._agents.get(session_id)
+        if ses is None:
             return None
-        if session.is_expired():
-            del self._sessions[session_id]
-            logger.info("session expired on get session=%s", session_id)
+        if username is not None and ses.username != username:
             return None
-        if username is not None and session.username != username:
-            return None
-        return session
+        return ses
 
-    def delete(self, session_id: str, username: str | None = None) -> None:
-        session = self._sessions.get(session_id)
-        if session is not None:
-            if username is None or session.username == username:
-                self._sessions.pop(session_id, None)
-                logger.info("session deleted session=%s user=%s", session_id, username)
+    async def load_messages(self, session_id: str) -> list[BaseMessage]:
+        rows = await get_session_messages(session_id, _MAX_MESSAGES_PER_SESSION)
+        messages: list[BaseMessage] = []
+        for r in rows:
+            if r["role"] == "user":
+                messages.append(HumanMessage(content=r["content"]))
+            elif r["role"] == "ai":
+                messages.append(AIMessage(content=r["content"]))
+        return messages
+
+    async def append_message(self, session_id: str, role: str, content: str) -> None:
+        seq = await get_message_count(session_id)
+        await create_message(session_id, role, content, seq)
+        await trim_session_messages(session_id, _MAX_MESSAGES_PER_SESSION)
+
+    async def end_session(self, session_id: str) -> None:
+        await update_session_status(session_id, "completed")
+
+    async def delete(self, session_id: str, username: str | None = None) -> None:
+        ses = self._agents.get(session_id)
+        if ses is not None and (username is None or ses.username == username):
+            self._agents.pop(session_id, None)
+        await delete_session(session_id)
+        logger.info("session deleted id=%s", session_id)
 
 
 session_manager = SessionManager()

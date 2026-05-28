@@ -7,7 +7,6 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
-from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -15,7 +14,9 @@ from slowapi.util import get_remote_address
 
 from interview_agent.auth import authenticate, get_current_user, register
 from interview_agent.config import auth_settings, llm_settings, server_settings, vectordb_settings
+from interview_agent.db import get_user_by_username, init_db
 from interview_agent.logging_config import setup_logging
+from interview_agent.migrate import migrate_users_if_needed
 from interview_agent.prompts import PRESET_DOMAINS
 from interview_agent.session import session_manager
 
@@ -33,6 +34,8 @@ async def _lifespan(app: FastAPI):
             "AUTH_SECRET_KEY is still the default 'change-me-in-production'. "
             "Set a strong secret key via AUTH_SECRET_KEY in your .env file."
         )
+    await init_db()
+    await migrate_users_if_needed()
     yield
 
 
@@ -74,10 +77,10 @@ async def api_register(request: Request, req: RegisterRequest) -> dict:
     if valid_codes and not req.invite_code.strip():
         raise HTTPException(status_code=400, detail="Invite code is required")
     try:
-        register(req.username, req.password, req.invite_code)
+        await register(req.username, req.password, req.invite_code)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    token = authenticate(req.username, req.password)
+    token = await authenticate(req.username, req.password)
     return {"token": token, "username": req.username}
 
 
@@ -85,7 +88,7 @@ async def api_register(request: Request, req: RegisterRequest) -> dict:
 @limiter.limit("10/minute")
 async def api_login(request: Request, req: LoginRequest) -> dict:
     try:
-        token = authenticate(req.username, req.password)
+        token = await authenticate(req.username, req.password)
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return {"token": token, "username": req.username}
@@ -263,7 +266,14 @@ async def create_session(
     if len(structured_profile) > _MAX_PROFILE_SIZE:
         structured_profile = structured_profile[:_MAX_PROFILE_SIZE] + "\n[truncated]"
 
-    session_id = await session_manager.create(req.domain, req.difficulty, username, structured_jd, structured_profile)
+    user = await get_user_by_username(username)
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    user_id = user["id"]
+
+    session_id = await session_manager.create(
+        req.domain, req.difficulty, username, user_id, structured_jd, structured_profile,
+    )
     logger.info(
         "create_session user=%s session=%s domain=%s difficulty=%s jd_len=%d profile_len=%d",
         username, session_id, req.domain, req.difficulty, len(structured_jd), len(structured_profile),
@@ -276,19 +286,19 @@ async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user
     if len(req.message) > _MAX_MESSAGE_LEN:
         raise HTTPException(status_code=400, detail="Message too long")
 
-    session = session_manager.get(req.session_id, username)
-    if session is None:
+    ses = session_manager.get_agent(req.session_id, username)
+    if ses is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     logger.info("chat_stream start user=%s session=%s msg_len=%d", username, req.session_id, len(req.message))
 
-    human_msg = HumanMessage(content=req.message)
-    session.messages.append(human_msg)
+    await session_manager.append_message(req.session_id, "user", req.message)
+    messages = await session_manager.load_messages(req.session_id)
 
     async def event_generator():
         full_content = ""
-        async for event in session.agent.astream_events(
-            {"messages": session.messages},
+        async for event in ses.agent.astream_events(
+            {"messages": messages},
             version="v2",
         ):
             kind = event.get("event")
@@ -305,8 +315,8 @@ async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user
             elif kind == "on_tool_end":
                 yield f"data: {json.dumps({'type': 'tool_end'}, ensure_ascii=False)}\n\n"
 
-        session.messages.append(AIMessage(content=full_content))
-        session.trim_messages()
+        if full_content:
+            await session_manager.append_message(req.session_id, "ai", full_content)
         logger.info("chat_stream end user=%s session=%s reply_len=%d", username, req.session_id, len(full_content))
         yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
 
@@ -317,7 +327,7 @@ async def chat_stream(req: ChatRequest, username: str = Depends(get_current_user
 async def delete_session(
     session_id: str, username: str = Depends(get_current_user)
 ) -> dict:
-    session_manager.delete(session_id, username)
+    await session_manager.delete(session_id, username)
     return {"ok": True}
 
 
