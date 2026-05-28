@@ -1,6 +1,10 @@
 services:
   app:
-    build: ..
+    build:
+      context: ..
+      args:
+        PYPI_INDEX_URL: ${PYPI_INDEX_URL:-https://pypi.org/simple}
+        UV_VERSION: ${UV_VERSION:-0.11.16}
     container_name: interview-agent-app
     restart: unless-stopped
     env_file: ../.env
@@ -20,7 +24,11 @@ services:
           cpus: "1.0"
 
   vectordb:
-    build: ../../interview-vectordb
+    build:
+      context: ../../interview-vectordb
+      args:
+        PYPI_INDEX_URL: ${PYPI_INDEX_URL:-https://pypi.org/simple}
+        UV_VERSION: ${UV_VERSION:-0.11.16}
     container_name: interview-vectordb
     restart: unless-stopped
     env_file: ../.env

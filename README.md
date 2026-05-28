@@ -122,6 +122,7 @@ vim interview-agent/.env
 | `SERVER_CORS_ORIGINS` | CORS 允许的来源 | `https://foolzheng.top` |
 | `SSL_DOMAIN` | 你的域名 | `foolzheng.top` |
 | `SSL_EMAIL` | Let's Encrypt 通知邮箱 | `admin@foolzheng.top` |
+| `PYPI_INDEX_URL` | Docker 构建 Python 依赖源，国内服务器建议配置镜像 | `https://pypi.tuna.tsinghua.edu.cn/simple` |
 
 然后一键部署：
 
@@ -148,7 +149,7 @@ cd interview-agent/deploy
 bash deploy.sh
 ```
 
-`deploy.sh` 检测到已有证书后会跳过申请步骤，直接重建并重启。**务必用 `bash deploy.sh`，不要手动 `docker compose build/up`**——手动操作不会执行 `envsubst` 域名替换。
+`deploy.sh` 检测到已有证书后会跳过申请步骤，并按低内存服务器友好的顺序单独构建 vectordb 和 app，再重启服务。**务必用 `bash deploy.sh`，不要手动 `docker compose build/up`**——手动操作不会执行 `envsubst` 域名替换，也更容易在 2G 内存机器上触发 OOM。
 
 ### 3. 服务管理
 
