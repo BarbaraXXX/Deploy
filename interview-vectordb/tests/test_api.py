@@ -49,6 +49,16 @@ async def test_list_profiles_empty(client):
     assert r.json() == {"profiles": []}
 
 
+async def test_healthz_does_not_touch_profiles(client, monkeypatch):
+    def fail_list_profiles():
+        raise AssertionError("healthz must not read profiles")
+
+    monkeypatch.setattr(api_module._db, "list_profiles", fail_list_profiles)
+    r = await client.get("/healthz")
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+
+
 async def test_list_profiles_with_data(client, test_db):
     test_db.save_profile(InterviewProfile(company="A", position="B", source_count=3))
     r = await client.get("/api/profiles")

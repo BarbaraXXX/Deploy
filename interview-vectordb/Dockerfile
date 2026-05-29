@@ -20,6 +20,6 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 EXPOSE 9000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9000/api/profiles')" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9000/healthz')" || exit 1
 
 CMD ["python", "-m", "interview_vectordb"]

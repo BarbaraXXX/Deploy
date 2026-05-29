@@ -43,6 +43,11 @@ async def require_admin_token(x_admin_token: str = Header(default="")) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
+@api_app.get("/healthz")
+async def healthz() -> dict:
+    return {"ok": True}
+
+
 @api_app.get("/api/profiles")
 async def list_profiles() -> dict:
     logger.info("GET /api/profiles")
