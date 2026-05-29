@@ -29,3 +29,6 @@ interview-tester/.venv/
 coverage.xml
 htmlcov/
 .ruff_cache/
+
+# codex
+.codex
