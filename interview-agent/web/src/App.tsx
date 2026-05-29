@@ -90,26 +90,26 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
             <span>模拟技术面试</span>
           </div>
           <div className="auth-copy">
-            <p className="eyebrow">Interview Practice</p>
-            <h1 className="setup-title">用更接近真实面试的节奏完成一次技术演练</h1>
+            <p className="eyebrow">Practice Console</p>
+            <h1 className="setup-title">面试练习台</h1>
             <p className="setup-subtitle">
-              登录后选择方向、难度与岗位信息，系统会按你的目标岗位生成连续追问。
+              面向技术面试准备的轻量工作台。登录后选择方向、难度和岗位信息，直接进入模拟问答。
             </p>
           </div>
-          <div className="auth-highlights">
-            <div>
-              <strong>8</strong>
-              <span>个预设方向</span>
-            </div>
-            <div>
-              <strong>3</strong>
-              <span>档面试难度</span>
-            </div>
-            <div>
-              <strong>JD</strong>
-              <span>岗位定制追问</span>
-            </div>
-          </div>
+          <ul className="auth-checklist">
+            <li>
+              <strong>方向覆盖</strong>
+              <span>后端、前端、算法、DevOps、数据、安全等常见技术岗位。</span>
+            </li>
+            <li>
+              <strong>难度可控</strong>
+              <span>按实习、初中级、高级候选人的面试深度组织追问。</span>
+            </li>
+            <li>
+              <strong>岗位定制</strong>
+              <span>可粘贴 JD，让问题更贴近目标公司和岗位要求。</span>
+            </li>
+          </ul>
         </section>
 
         <section className="auth-panel" aria-label={isRegister ? '注册' : '登录'}>
@@ -242,29 +242,22 @@ function SetupView({ onStart, username, onLogout }: {
         </header>
 
         <div className="setup-layout">
-          <aside className="setup-overview">
-            <p className="eyebrow">Interview Setup</p>
-            <h1 className="setup-title">配置一场更贴近目标岗位的模拟面试</h1>
-            <p className="setup-subtitle">
-              方向决定问题范围，难度决定追问深度，JD 会让面试更贴近真实招聘要求。
-            </p>
-            <div className="setup-summary">
-              <div>
-                <span>方向</span>
-                <strong>{activeDomainLabel}</strong>
-              </div>
-              <div>
-                <span>难度</span>
-                <strong>{activeDifficulty.label}</strong>
-              </div>
-              <div>
-                <span>岗位信息</span>
-                <strong>{jobDescription.trim() ? '已提供 JD' : '未提供 JD'}</strong>
-              </div>
-            </div>
-          </aside>
-
           <main className="setup-panel">
+            <div className="setup-panel-head">
+              <div>
+                <p className="eyebrow">Interview Setup</p>
+                <h1 className="setup-title">模拟技术面试配置</h1>
+                <p className="setup-subtitle">先确定方向和难度，再补充岗位信息；信息越明确，追问越贴近目标岗位。</p>
+              </div>
+              <button
+                className="start-button compact"
+                disabled={!activeDomain || loading}
+                onClick={handleStart}
+              >
+                {loading ? '正在准备...' : '开始面试'}
+              </button>
+            </div>
+
             <section className="setup-section">
               <div className="section-heading">
                 <label className="section-label">技术方向</label>
@@ -368,13 +361,42 @@ function SetupView({ onStart, username, onLogout }: {
             </section>
 
             <button
-              className="start-button"
+              className="start-button mobile-start"
               disabled={!activeDomain || loading}
               onClick={handleStart}
             >
               {loading ? '正在准备...' : '开始面试'}
             </button>
           </main>
+
+          <aside className="setup-overview">
+            <div className="aside-block">
+              <p className="eyebrow">Current</p>
+              <h2>当前配置</h2>
+            </div>
+            <div className="setup-summary">
+              <div>
+                <span>方向</span>
+                <strong>{activeDomainLabel}</strong>
+              </div>
+              <div>
+                <span>难度</span>
+                <strong>{activeDifficulty.label}</strong>
+              </div>
+              <div>
+                <span>岗位信息</span>
+                <strong>{jobDescription.trim() ? '已提供 JD' : '未提供 JD'}</strong>
+              </div>
+            </div>
+            <div className="aside-block">
+              <h2>选择建议</h2>
+              <ul className="setup-guide">
+                <li>方向不确定时，优先选择最接近投递岗位主职责的方向。</li>
+                <li>校招、实习或 1 年内经验建议从初级开始。</li>
+                <li>有明确招聘链接时建议粘贴 JD，问题会更聚焦。</li>
+              </ul>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
