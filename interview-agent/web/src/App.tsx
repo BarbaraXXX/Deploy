@@ -121,8 +121,9 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
 
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-field">
-              <label className="section-label">用户名</label>
+              <label className="section-label" htmlFor="login-username">用户名</label>
               <input
+                id="login-username"
                 type="text"
                 className="custom-input"
                 value={username}
@@ -133,8 +134,9 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
               />
             </div>
             <div className="login-field">
-              <label className="section-label">密码</label>
+              <label className="section-label" htmlFor="login-password">密码</label>
               <input
+                id="login-password"
                 type="password"
                 className="custom-input"
                 value={password}
@@ -147,8 +149,9 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
 
             {isRegister && (
               <div className="login-field">
-                <label className="section-label">邀请码</label>
+                <label className="section-label" htmlFor="login-invite-code">邀请码</label>
                 <input
+                  id="login-invite-code"
                   type="text"
                   className="custom-input"
                   value={inviteCode}
@@ -277,6 +280,7 @@ function SetupView({ onStart, username, onLogout }: {
               </div>
               <div className="custom-domain">
                 <input
+                  aria-label="自定义技术方向"
                   type="text"
                   className="custom-input"
                   placeholder="或输入自定义方向，例如：Java 后端、AI 工程、测试开发"
@@ -308,12 +312,13 @@ function SetupView({ onStart, username, onLogout }: {
 
             <section className="setup-section">
               <div className="section-heading">
-                <label className="section-label">岗位JD（可选）</label>
+                <label className="section-label" htmlFor="job-description">岗位JD（可选）</label>
                 <p>
                   JD 是 Job Description，即招聘页面里的岗位职责和任职要求。可从招聘网站、公司官网或内推说明中复制，提供后会用于调整面试侧重点。
                 </p>
               </div>
               <textarea
+                id="job-description"
                 className="custom-input jd-textarea"
                 placeholder="粘贴岗位JD，AI将根据职责、技术栈和任职要求调整问题..."
                 value={jobDescription}
@@ -324,10 +329,11 @@ function SetupView({ onStart, username, onLogout }: {
 
             <section className="setup-section">
               <div className="section-heading">
-                <label className="section-label">面试偏好（可选）</label>
+                <label className="section-label" htmlFor="profile-select">面试偏好（可选）</label>
                 <p>选择公司和岗位画像后，问题会更贴近对应面经风格；也可以保持默认。</p>
               </div>
               <select
+                id="profile-select"
                 className="custom-input profile-select"
                 value={selectedProfileIdx}
                 onChange={(e) => { setSelectedProfileIdx(Number(e.target.value)); setCustomCompany(''); setCustomPosition(''); }}
@@ -343,6 +349,7 @@ function SetupView({ onStart, username, onLogout }: {
               {selectedProfileIdx === -2 && (
                 <div className="custom-profile-inputs">
                   <input
+                    aria-label="公司名称"
                     type="text"
                     className="custom-input"
                     placeholder="公司名称"
@@ -350,6 +357,7 @@ function SetupView({ onStart, username, onLogout }: {
                     onChange={(e) => setCustomCompany(e.target.value)}
                   />
                   <input
+                    aria-label="岗位名称"
                     type="text"
                     className="custom-input"
                     placeholder="岗位名称"
@@ -517,6 +525,7 @@ function ChatView({
 
       <div className="chat-input-bar">
         <textarea
+          aria-label="面试回答"
           className="chat-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -526,6 +535,7 @@ function ChatView({
           disabled={isStreaming}
         />
         <button
+          aria-label="发送回答"
           className="send-button"
           onClick={handleSend}
           disabled={!input.trim() || isStreaming}
