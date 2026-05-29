@@ -77,46 +77,89 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
 
   return (
     <div className="setup-view">
-      <div className="auth-layout">
-        <section className="auth-intro" aria-label="产品介绍">
-          <div className="brand-lockup">
-            <div className="logo-mark">
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                <rect width="36" height="36" rx="8" fill="var(--color-accent)" />
-                <path d="M10 18L16 12L22 18L16 24Z" fill="white" opacity="0.9" />
-                <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.6" />
-              </svg>
+      <div className="auth-shell">
+        <section className="auth-command" aria-label="产品介绍">
+          <div className="auth-command-top">
+            <div className="brand-lockup">
+              <div className="logo-mark">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <rect width="36" height="36" rx="8" fill="var(--color-accent)" />
+                  <path d="M10 18L16 12L22 18L16 24Z" fill="white" opacity="0.9" />
+                  <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.6" />
+                </svg>
+              </div>
+              <span>Interview Agent</span>
             </div>
-            <span>模拟技术面试</span>
+            <span className="system-pill">Private Beta</span>
           </div>
-          <div className="auth-copy">
-            <p className="eyebrow">Practice Console</p>
-            <h1 className="setup-title">面试练习台</h1>
-            <p className="setup-subtitle">
-              面向技术面试准备的轻量工作台。登录后选择方向、难度和岗位信息，直接进入模拟问答。
+
+          <div className="auth-hero-copy">
+            <p className="eyebrow">AI Interview Console</p>
+            <h1>把一次技术面试拆成可控的练习流程</h1>
+            <p>
+              选择方向、难度与岗位信息后进入模拟问答。系统会围绕目标岗位持续追问，适合面试前做集中演练。
             </p>
           </div>
-          <ul className="auth-checklist">
-            <li>
-              <strong>方向覆盖</strong>
-              <span>后端、前端、算法、DevOps、数据、安全等常见技术岗位。</span>
-            </li>
-            <li>
-              <strong>难度可控</strong>
-              <span>按实习、初中级、高级候选人的面试深度组织追问。</span>
-            </li>
-            <li>
-              <strong>岗位定制</strong>
-              <span>可粘贴 JD，让问题更贴近目标公司和岗位要求。</span>
-            </li>
-          </ul>
+
+          <div className="auth-metrics" aria-label="系统能力摘要">
+            <div>
+              <span>Preset</span>
+              <strong>8</strong>
+              <small>技术方向</small>
+            </div>
+            <div>
+              <span>Levels</span>
+              <strong>3</strong>
+              <small>面试难度</small>
+            </div>
+            <div>
+              <span>Context</span>
+              <strong>JD</strong>
+              <small>岗位定制</small>
+            </div>
+          </div>
+
+          <div className="auth-sequence" aria-label="使用流程">
+            <div>
+              <span>01</span>
+              <strong>配置目标</strong>
+              <p>确认技术方向、岗位难度和目标 JD。</p>
+            </div>
+            <div>
+              <span>02</span>
+              <strong>进入问答</strong>
+              <p>用连续追问模拟真实技术面试节奏。</p>
+            </div>
+            <div>
+              <span>03</span>
+              <strong>调整强度</strong>
+              <p>按当前准备阶段切换初级、中级或高级难度。</p>
+            </div>
+          </div>
         </section>
 
-        <section className="auth-panel" aria-label={isRegister ? '注册' : '登录'}>
+        <section className="auth-card" aria-label={isRegister ? '注册' : '登录'}>
           <div className="panel-heading">
             <p className="eyebrow">{isRegister ? 'Create Account' : 'Welcome Back'}</p>
             <h2>{isRegister ? '创建账号' : '登录账号'}</h2>
             <p>{isRegister ? '输入邀请码后即可开启模拟面试。' : '继续上次的面试准备流程。'}</p>
+          </div>
+
+          <div className="auth-switch" aria-label="认证模式">
+            <button
+              type="button"
+              className={!isRegister ? 'active' : ''}
+              onClick={() => { setIsRegister(false); setError(''); }}
+            >
+              登录
+            </button>
+            <button
+              type="button"
+              className={isRegister ? 'active' : ''}
+              onClick={() => { setIsRegister(true); setError(''); }}
+            >
+              注册
+            </button>
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
@@ -162,19 +205,12 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
               </div>
             )}
 
-            {error && <div className="login-error">{error}</div>}
+            {error && <div className="login-error" role="alert">{error}</div>}
 
             <button className="start-button" type="submit" disabled={loading || !username || !password}>
-              {loading ? '请稍候...' : isRegister ? '注册' : '登录'}
+              {loading ? '请稍候...' : isRegister ? '创建账号' : '进入控制台'}
             </button>
           </form>
-
-          <button
-            className="login-toggle"
-            onClick={() => { setIsRegister(!isRegister); setError(''); }}
-          >
-            {isRegister ? '已有账号？去登录' : '没有账号？去注册'}
-          </button>
         </section>
       </div>
     </div>
@@ -226,8 +262,8 @@ function SetupView({ onStart, username, onLogout }: {
 
   return (
     <div className="setup-view">
-      <div className="setup-workspace">
-        <header className="setup-topbar">
+      <div className="console-shell">
+        <header className="console-topbar">
           <div className="brand-lockup">
             <div className="logo-mark">
               <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
@@ -239,40 +275,77 @@ function SetupView({ onStart, username, onLogout }: {
             <span>模拟技术面试</span>
           </div>
           <div className="user-badge">
+            <span className="system-pill">已登录</span>
             <span className="user-badge-name">{username}</span>
             <button className="logout-link" onClick={onLogout}>退出</button>
           </div>
         </header>
 
-        <div className="setup-layout">
-          <main className="setup-panel">
-            <div className="setup-panel-head">
+        <div className="console-grid">
+          <aside className="workflow-rail" aria-label="配置步骤">
+            <div className="rail-title">
+              <p className="eyebrow">Workflow</p>
+              <h2>面试配置流程</h2>
+            </div>
+            <ol className="rail-steps">
+              <li className={activeDomain ? 'complete' : 'active'}>
+                <span>01</span>
+                <div>
+                  <strong>技术方向</strong>
+                  <small>{activeDomainLabel}</small>
+                </div>
+              </li>
+              <li className={difficulty ? 'complete' : 'active'}>
+                <span>02</span>
+                <div>
+                  <strong>面试难度</strong>
+                  <small>{activeDifficulty.meta}</small>
+                </div>
+              </li>
+              <li className={jobDescription.trim() ? 'complete' : ''}>
+                <span>03</span>
+                <div>
+                  <strong>岗位 JD</strong>
+                  <small>{jobDescription.trim() ? '已提供岗位信息' : '可选，推荐提供'}</small>
+                </div>
+              </li>
+              <li className={selectedProfileIdx !== -1 ? 'complete' : ''}>
+                <span>04</span>
+                <div>
+                  <strong>面试偏好</strong>
+                  <small>{selectedProfileIdx === -1 ? '默认通用风格' : '已选择偏好'}</small>
+                </div>
+              </li>
+            </ol>
+          </aside>
+
+          <main className="config-stage">
+            <section className="config-hero">
               <div>
                 <p className="eyebrow">Interview Setup</p>
-                <h1 className="setup-title">模拟技术面试配置</h1>
-                <p className="setup-subtitle">先确定方向和难度，再补充岗位信息；信息越明确，追问越贴近目标岗位。</p>
+                <h1 className="setup-title">定制你的技术面试场景</h1>
+                <p className="setup-subtitle">保留必要输入，减少多余选择。方向决定问题范围，难度决定追问深度，JD 会让问题更贴近真实招聘要求。</p>
               </div>
-              <button
-                className="start-button compact"
-                disabled={!activeDomain || loading}
-                onClick={handleStart}
-              >
-                {loading ? '正在准备...' : '开始面试'}
-              </button>
-            </div>
+              <div className="config-status">
+                <span>{activeDomain ? 'Ready' : 'Waiting'}</span>
+                <strong>{activeDomain ? '配置可启动' : '请选择技术方向'}</strong>
+              </div>
+            </section>
 
-            <section className="setup-section">
+            <section className="config-section">
               <div className="section-heading">
                 <label className="section-label">技术方向</label>
                 <p>选择最接近目标岗位的方向，面试官会围绕对应能力模型追问。</p>
               </div>
-              <div className="domain-grid">
+              <div className="selection-grid domain-grid">
                 {domains.map((d) => (
                   <button
                     key={d}
                     className={`domain-card ${selectedDomain === d && !customDomain ? 'active' : ''}`}
                     onClick={() => { setSelectedDomain(d); setCustomDomain(''); }}
+                    aria-pressed={selectedDomain === d && !customDomain}
                   >
+                    <em>{DOMAIN_LABELS[d]?.slice(0, 1) || d.slice(0, 1).toUpperCase()}</em>
                     <span>{DOMAIN_LABELS[d] || d}</span>
                     <small>{getDomainDescription(d)}</small>
                   </button>
@@ -290,18 +363,20 @@ function SetupView({ onStart, username, onLogout }: {
               </div>
             </section>
 
-            <section className="setup-section">
+            <section className="config-section">
               <div className="section-heading">
                 <label className="section-label">面试难度</label>
                 <p>按你的目标岗位和经验年限选择，难度越高越强调方案取舍和追问深度。</p>
               </div>
-              <div className="difficulty-group">
+              <div className="difficulty-grid">
                 {DIFFICULTY_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     className={`difficulty-card ${difficulty === opt.value ? 'active' : ''}`}
                     onClick={() => setDifficulty(opt.value)}
+                    aria-pressed={difficulty === opt.value}
                   >
+                    <em>{opt.value === 'junior' ? '01' : opt.value === 'mid' ? '02' : '03'}</em>
                     <span>{opt.label}</span>
                     <strong>{opt.meta}</strong>
                     <small>{opt.description}</small>
@@ -310,77 +385,71 @@ function SetupView({ onStart, username, onLogout }: {
               </div>
             </section>
 
-            <section className="setup-section">
-              <div className="section-heading">
-                <label className="section-label" htmlFor="job-description">岗位JD（可选）</label>
-                <p>
-                  JD 是 Job Description，即招聘页面里的岗位职责和任职要求。可从招聘网站、公司官网或内推说明中复制，提供后会用于调整面试侧重点。
-                </p>
-              </div>
-              <textarea
-                id="job-description"
-                className="custom-input jd-textarea"
-                placeholder="粘贴岗位JD，AI将根据职责、技术栈和任职要求调整问题..."
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                rows={5}
-              />
-            </section>
-
-            <section className="setup-section">
-              <div className="section-heading">
-                <label className="section-label" htmlFor="profile-select">面试偏好（可选）</label>
-                <p>选择公司和岗位画像后，问题会更贴近对应面经风格；也可以保持默认。</p>
-              </div>
-              <select
-                id="profile-select"
-                className="custom-input profile-select"
-                value={selectedProfileIdx}
-                onChange={(e) => { setSelectedProfileIdx(Number(e.target.value)); setCustomCompany(''); setCustomPosition(''); }}
-              >
-                <option value={-1}>无</option>
-                {profiles.map((p, i) => (
-                  <option key={p.key} value={i}>
-                    {p.company} - {p.position}（{p.source_count}份面经）
-                  </option>
-                ))}
-                <option value={-2}>手动输入...</option>
-              </select>
-              {selectedProfileIdx === -2 && (
-                <div className="custom-profile-inputs">
-                  <input
-                    aria-label="公司名称"
-                    type="text"
-                    className="custom-input"
-                    placeholder="公司名称"
-                    value={customCompany}
-                    onChange={(e) => setCustomCompany(e.target.value)}
-                  />
-                  <input
-                    aria-label="岗位名称"
-                    type="text"
-                    className="custom-input"
-                    placeholder="岗位名称"
-                    value={customPosition}
-                    onChange={(e) => setCustomPosition(e.target.value)}
-                  />
+            <div className="context-grid">
+              <section className="context-panel">
+                <div className="section-heading">
+                  <label className="section-label" htmlFor="job-description">岗位JD（可选）</label>
+                  <p>
+                    JD 是 Job Description，即招聘页面里的岗位职责和任职要求。可从招聘网站、公司官网或内推说明中复制，提供后会用于调整面试侧重点。
+                  </p>
                 </div>
-              )}
-            </section>
+                <textarea
+                  id="job-description"
+                  className="custom-input jd-textarea"
+                  placeholder="粘贴岗位JD，AI将根据职责、技术栈和任职要求调整问题..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  rows={5}
+                />
+              </section>
 
-            <button
-              className="start-button mobile-start"
-              disabled={!activeDomain || loading}
-              onClick={handleStart}
-            >
-              {loading ? '正在准备...' : '开始面试'}
-            </button>
+              <section className="context-panel">
+                <div className="section-heading">
+                  <label className="section-label" htmlFor="profile-select">面试偏好（可选）</label>
+                  <p>选择公司和岗位画像后，问题会更贴近对应面经风格；也可以保持默认。</p>
+                </div>
+                <select
+                  id="profile-select"
+                  className="custom-input profile-select"
+                  value={selectedProfileIdx}
+                  onChange={(e) => { setSelectedProfileIdx(Number(e.target.value)); setCustomCompany(''); setCustomPosition(''); }}
+                >
+                  <option value={-1}>无</option>
+                  {profiles.map((p, i) => (
+                    <option key={p.key} value={i}>
+                      {p.company} - {p.position}（{p.source_count}份面经）
+                    </option>
+                  ))}
+                  <option value={-2}>手动输入...</option>
+                </select>
+                {selectedProfileIdx === -2 && (
+                  <div className="custom-profile-inputs">
+                    <input
+                      aria-label="公司名称"
+                      type="text"
+                      className="custom-input"
+                      placeholder="公司名称"
+                      value={customCompany}
+                      onChange={(e) => setCustomCompany(e.target.value)}
+                    />
+                    <input
+                      aria-label="岗位名称"
+                      type="text"
+                      className="custom-input"
+                      placeholder="岗位名称"
+                      value={customPosition}
+                      onChange={(e) => setCustomPosition(e.target.value)}
+                    />
+                  </div>
+                )}
+              </section>
+            </div>
           </main>
 
-          <aside className="setup-overview">
+          <aside className="launch-panel">
             <div className="aside-block">
               <p className="eyebrow">Current</p>
-              <h2>当前配置</h2>
+              <h2>启动前确认</h2>
             </div>
             <div className="setup-summary">
               <div>
@@ -404,6 +473,13 @@ function SetupView({ onStart, username, onLogout }: {
                 <li>有明确招聘链接时建议粘贴 JD，问题会更聚焦。</li>
               </ul>
             </div>
+            <button
+              className="start-button launch-button"
+              disabled={!activeDomain || loading}
+              onClick={handleStart}
+            >
+              {loading ? '正在准备...' : '开始面试'}
+            </button>
           </aside>
         </div>
       </div>
