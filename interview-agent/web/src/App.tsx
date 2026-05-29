@@ -10,9 +10,9 @@ interface Message {
 }
 
 const DIFFICULTY_OPTIONS = [
-  { value: 'junior', label: '初级' },
-  { value: 'mid', label: '中级' },
-  { value: 'senior', label: '高级' },
+  { value: 'junior', label: '初级', meta: '实习至 1 年经验', description: '侧重基础概念、常见业务实现、代码可读性与排错思路。' },
+  { value: 'mid', label: '中级', meta: '1 至 3 年经验', description: '加入工程实践、模块设计、性能取舍和线上问题处理。' },
+  { value: 'senior', label: '高级', meta: '3 年以上经验', description: '强调系统设计、技术决策、复杂场景拆解和跨团队协作。' },
 ];
 
 const DEFAULT_DOMAINS = [
@@ -30,6 +30,20 @@ const DOMAIN_LABELS: Record<string, string> = {
   data: '数据',
   security: '安全',
 };
+
+const DOMAIN_DESCRIPTIONS: Record<string, string> = {
+  backend: '围绕接口设计、数据库、缓存、并发、服务稳定性和系统设计展开。',
+  frontend: '覆盖组件设计、状态管理、性能优化、工程化、浏览器机制和用户体验。',
+  fullstack: '兼顾前后端协作、接口边界、端到端交付、数据流与工程取舍。',
+  algorithm: '聚焦数据结构、复杂度分析、编码表达、边界条件和解题思路。',
+  embedded: '关注 C/C++、操作系统、硬件接口、实时性、内存管理和调试能力。',
+  devops: '考察 Linux、CI/CD、容器、监控告警、发布回滚和故障定位。',
+  data: '涉及 SQL、数据建模、ETL、指标口径、数据质量和分析表达。',
+  security: '覆盖 Web 安全、权限模型、漏洞排查、攻防思路和安全工程实践。',
+};
+
+const getDomainDescription = (domain: string) =>
+  DOMAIN_DESCRIPTIONS[domain] || '将根据你输入的方向生成更贴近该岗位的技术追问。';
 
 function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
   const [isRegister, setIsRegister] = useState(false);
@@ -63,74 +77,102 @@ function LoginView({ onLogin }: { onLogin: (username: string) => void }) {
 
   return (
     <div className="setup-view">
-      <div className="setup-container">
-        <div className="setup-header">
-          <div className="logo-mark">
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <rect width="36" height="36" rx="8" fill="var(--color-accent)" />
-              <path d="M10 18L16 12L22 18L16 24Z" fill="white" opacity="0.9" />
-              <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.6" />
-            </svg>
+      <div className="auth-layout">
+        <section className="auth-intro" aria-label="产品介绍">
+          <div className="brand-lockup">
+            <div className="logo-mark">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <rect width="36" height="36" rx="8" fill="var(--color-accent)" />
+                <path d="M10 18L16 12L22 18L16 24Z" fill="white" opacity="0.9" />
+                <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.6" />
+              </svg>
+            </div>
+            <span>模拟技术面试</span>
           </div>
-          <h1 className="setup-title">模拟技术面试</h1>
-          <p className="setup-subtitle">
-            {isRegister ? '创建账号以开始面试' : '登录你的账号'}
-          </p>
-        </div>
+          <div className="auth-copy">
+            <p className="eyebrow">Interview Practice</p>
+            <h1 className="setup-title">用更接近真实面试的节奏完成一次技术演练</h1>
+            <p className="setup-subtitle">
+              登录后选择方向、难度与岗位信息，系统会按你的目标岗位生成连续追问。
+            </p>
+          </div>
+          <div className="auth-highlights">
+            <div>
+              <strong>8</strong>
+              <span>个预设方向</span>
+            </div>
+            <div>
+              <strong>3</strong>
+              <span>档面试难度</span>
+            </div>
+            <div>
+              <strong>JD</strong>
+              <span>岗位定制追问</span>
+            </div>
+          </div>
+        </section>
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="login-field">
-            <label className="section-label">用户名</label>
-            <input
-              type="text"
-              className="custom-input"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="输入用户名"
-              minLength={2}
-              required
-            />
-          </div>
-          <div className="login-field">
-            <label className="section-label">密码</label>
-            <input
-              type="password"
-              className="custom-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isRegister ? '至少6位' : '输入密码'}
-              minLength={6}
-              required
-            />
+        <section className="auth-panel" aria-label={isRegister ? '注册' : '登录'}>
+          <div className="panel-heading">
+            <p className="eyebrow">{isRegister ? 'Create Account' : 'Welcome Back'}</p>
+            <h2>{isRegister ? '创建账号' : '登录账号'}</h2>
+            <p>{isRegister ? '输入邀请码后即可开启模拟面试。' : '继续上次的面试准备流程。'}</p>
           </div>
 
-          {isRegister && (
+          <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-field">
-              <label className="section-label">* 邀请码</label>
+              <label className="section-label">用户名</label>
               <input
                 type="text"
                 className="custom-input"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-                placeholder="输入邀请码"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="输入用户名"
+                minLength={2}
                 required
               />
             </div>
-          )}
+            <div className="login-field">
+              <label className="section-label">密码</label>
+              <input
+                type="password"
+                className="custom-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isRegister ? '至少6位' : '输入密码'}
+                minLength={6}
+                required
+              />
+            </div>
 
-          {error && <div className="login-error">{error}</div>}
+            {isRegister && (
+              <div className="login-field">
+                <label className="section-label">邀请码</label>
+                <input
+                  type="text"
+                  className="custom-input"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  placeholder="输入邀请码"
+                  required
+                />
+              </div>
+            )}
 
-          <button className="start-button" type="submit" disabled={loading || !username || !password}>
-            {loading ? '请稍候...' : isRegister ? '注册' : '登录'}
+            {error && <div className="login-error">{error}</div>}
+
+            <button className="start-button" type="submit" disabled={loading || !username || !password}>
+              {loading ? '请稍候...' : isRegister ? '注册' : '登录'}
+            </button>
+          </form>
+
+          <button
+            className="login-toggle"
+            onClick={() => { setIsRegister(!isRegister); setError(''); }}
+          >
+            {isRegister ? '已有账号？去登录' : '没有账号？去注册'}
           </button>
-        </form>
-
-        <button
-          className="login-toggle"
-          onClick={() => { setIsRegister(!isRegister); setError(''); }}
-        >
-          {isRegister ? '已有账号？去登录' : '没有账号？去注册'}
-        </button>
+        </section>
       </div>
     </div>
   );
@@ -161,6 +203,8 @@ function SetupView({ onStart, username, onLogout }: {
   }, []);
 
   const activeDomain = customDomain || selectedDomain;
+  const activeDomainLabel = activeDomain ? (DOMAIN_LABELS[activeDomain] || activeDomain) : '待选择';
+  const activeDifficulty = DIFFICULTY_OPTIONS.find((opt) => opt.value === difficulty) || DIFFICULTY_OPTIONS[1];
 
   const handleStart = () => {
     if (!activeDomain || !difficulty) return;
@@ -179,115 +223,159 @@ function SetupView({ onStart, username, onLogout }: {
 
   return (
     <div className="setup-view">
-      <div className="setup-container">
-        <div className="setup-header">
-          <div className="logo-mark">
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <rect width="36" height="36" rx="8" fill="var(--color-accent)" />
-              <path d="M10 18L16 12L22 18L16 24Z" fill="white" opacity="0.9" />
-              <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.6" />
-            </svg>
+      <div className="setup-workspace">
+        <header className="setup-topbar">
+          <div className="brand-lockup">
+            <div className="logo-mark">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <rect width="36" height="36" rx="8" fill="var(--color-accent)" />
+                <path d="M10 18L16 12L22 18L16 24Z" fill="white" opacity="0.9" />
+                <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.6" />
+              </svg>
+            </div>
+            <span>模拟技术面试</span>
           </div>
-          <h1 className="setup-title">模拟技术面试</h1>
-          <p className="setup-subtitle">选择你的技术方向与难度，开始一场模拟面试</p>
           <div className="user-badge">
             <span className="user-badge-name">{username}</span>
             <button className="logout-link" onClick={onLogout}>退出</button>
           </div>
-        </div>
+        </header>
 
-        <div className="setup-section">
-          <label className="section-label">技术方向</label>
-          <div className="domain-grid">
-            {domains.map((d) => (
-              <button
-                key={d}
-                className={`domain-chip ${selectedDomain === d && !customDomain ? 'active' : ''}`}
-                onClick={() => { setSelectedDomain(d); setCustomDomain(''); }}
-              >
-                {DOMAIN_LABELS[d] || d}
-              </button>
-            ))}
-          </div>
-          <div className="custom-domain">
-            <input
-              type="text"
-              className="custom-input"
-              placeholder="或输入自定义方向..."
-              value={customDomain}
-              onChange={(e) => { setCustomDomain(e.target.value); setSelectedDomain(''); }}
-            />
-          </div>
-        </div>
-
-        <div className="setup-section">
-          <label className="section-label">面试难度</label>
-          <div className="difficulty-group">
-            {DIFFICULTY_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                className={`difficulty-pill ${difficulty === opt.value ? 'active' : ''}`}
-                onClick={() => setDifficulty(opt.value)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="setup-section">
-          <label className="section-label">岗位JD（可选）</label>
-          <textarea
-            className="custom-input jd-textarea"
-            placeholder="粘贴岗位JD，AI将根据JD调整面试侧重点..."
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            rows={4}
-          />
-        </div>
-
-        <div className="setup-section">
-          <label className="section-label">面试偏好（可选）</label>
-          <select
-            className="custom-input profile-select"
-            value={selectedProfileIdx}
-            onChange={(e) => { setSelectedProfileIdx(Number(e.target.value)); setCustomCompany(''); setCustomPosition(''); }}
-          >
-            <option value={-1}>无</option>
-            {profiles.map((p, i) => (
-              <option key={p.key} value={i}>
-                {p.company} - {p.position}（{p.source_count}份面经）
-              </option>
-            ))}
-            <option value={-2}>手动输入...</option>
-          </select>
-          {selectedProfileIdx === -2 && (
-            <div className="custom-profile-inputs">
-              <input
-                type="text"
-                className="custom-input"
-                placeholder="公司名称"
-                value={customCompany}
-                onChange={(e) => setCustomCompany(e.target.value)}
-              />
-              <input
-                type="text"
-                className="custom-input"
-                placeholder="岗位名称"
-                value={customPosition}
-                onChange={(e) => setCustomPosition(e.target.value)}
-              />
+        <div className="setup-layout">
+          <aside className="setup-overview">
+            <p className="eyebrow">Interview Setup</p>
+            <h1 className="setup-title">配置一场更贴近目标岗位的模拟面试</h1>
+            <p className="setup-subtitle">
+              方向决定问题范围，难度决定追问深度，JD 会让面试更贴近真实招聘要求。
+            </p>
+            <div className="setup-summary">
+              <div>
+                <span>方向</span>
+                <strong>{activeDomainLabel}</strong>
+              </div>
+              <div>
+                <span>难度</span>
+                <strong>{activeDifficulty.label}</strong>
+              </div>
+              <div>
+                <span>岗位信息</span>
+                <strong>{jobDescription.trim() ? '已提供 JD' : '未提供 JD'}</strong>
+              </div>
             </div>
-          )}
-        </div>
+          </aside>
 
-        <button
-          className="start-button"
-          disabled={!activeDomain || loading}
-          onClick={handleStart}
-        >
-          {loading ? '正在准备...' : '开始面试'}
-        </button>
+          <main className="setup-panel">
+            <section className="setup-section">
+              <div className="section-heading">
+                <label className="section-label">技术方向</label>
+                <p>选择最接近目标岗位的方向，面试官会围绕对应能力模型追问。</p>
+              </div>
+              <div className="domain-grid">
+                {domains.map((d) => (
+                  <button
+                    key={d}
+                    className={`domain-card ${selectedDomain === d && !customDomain ? 'active' : ''}`}
+                    onClick={() => { setSelectedDomain(d); setCustomDomain(''); }}
+                  >
+                    <span>{DOMAIN_LABELS[d] || d}</span>
+                    <small>{getDomainDescription(d)}</small>
+                  </button>
+                ))}
+              </div>
+              <div className="custom-domain">
+                <input
+                  type="text"
+                  className="custom-input"
+                  placeholder="或输入自定义方向，例如：Java 后端、AI 工程、测试开发"
+                  value={customDomain}
+                  onChange={(e) => { setCustomDomain(e.target.value); setSelectedDomain(''); }}
+                />
+              </div>
+            </section>
+
+            <section className="setup-section">
+              <div className="section-heading">
+                <label className="section-label">面试难度</label>
+                <p>按你的目标岗位和经验年限选择，难度越高越强调方案取舍和追问深度。</p>
+              </div>
+              <div className="difficulty-group">
+                {DIFFICULTY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={`difficulty-card ${difficulty === opt.value ? 'active' : ''}`}
+                    onClick={() => setDifficulty(opt.value)}
+                  >
+                    <span>{opt.label}</span>
+                    <strong>{opt.meta}</strong>
+                    <small>{opt.description}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="setup-section">
+              <div className="section-heading">
+                <label className="section-label">岗位JD（可选）</label>
+                <p>
+                  JD 是 Job Description，即招聘页面里的岗位职责和任职要求。可从招聘网站、公司官网或内推说明中复制，提供后会用于调整面试侧重点。
+                </p>
+              </div>
+              <textarea
+                className="custom-input jd-textarea"
+                placeholder="粘贴岗位JD，AI将根据职责、技术栈和任职要求调整问题..."
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                rows={5}
+              />
+            </section>
+
+            <section className="setup-section">
+              <div className="section-heading">
+                <label className="section-label">面试偏好（可选）</label>
+                <p>选择公司和岗位画像后，问题会更贴近对应面经风格；也可以保持默认。</p>
+              </div>
+              <select
+                className="custom-input profile-select"
+                value={selectedProfileIdx}
+                onChange={(e) => { setSelectedProfileIdx(Number(e.target.value)); setCustomCompany(''); setCustomPosition(''); }}
+              >
+                <option value={-1}>无</option>
+                {profiles.map((p, i) => (
+                  <option key={p.key} value={i}>
+                    {p.company} - {p.position}（{p.source_count}份面经）
+                  </option>
+                ))}
+                <option value={-2}>手动输入...</option>
+              </select>
+              {selectedProfileIdx === -2 && (
+                <div className="custom-profile-inputs">
+                  <input
+                    type="text"
+                    className="custom-input"
+                    placeholder="公司名称"
+                    value={customCompany}
+                    onChange={(e) => setCustomCompany(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="custom-input"
+                    placeholder="岗位名称"
+                    value={customPosition}
+                    onChange={(e) => setCustomPosition(e.target.value)}
+                  />
+                </div>
+              )}
+            </section>
+
+            <button
+              className="start-button"
+              disabled={!activeDomain || loading}
+              onClick={handleStart}
+            >
+              {loading ? '正在准备...' : '开始面试'}
+            </button>
+          </main>
+        </div>
       </div>
     </div>
   );
