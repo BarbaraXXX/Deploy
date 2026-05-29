@@ -518,6 +518,26 @@ function ChatView({
   );
 }
 
+function LoadingView() {
+  return (
+    <div className="setup-view">
+      <div className="loading-panel">
+        <div className="logo-mark">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <rect width="36" height="36" rx="8" fill="var(--color-accent)" />
+            <path d="M10 18L16 12L22 18L16 24Z" fill="white" opacity="0.9" />
+            <path d="M16 18L22 12L28 18L22 24Z" fill="white" opacity="0.6" />
+          </svg>
+        </div>
+        <div>
+          <h1>正在连接面试系统</h1>
+          <p>如果后端暂时不可用，将自动进入登录页。</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [view, setView] = useState<View>('loading');
   const [sessionId, setSessionId] = useState('');
@@ -526,14 +546,18 @@ function App() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    void getMe().then((me) => {
-      if (me) {
-        setUsername(me.username);
-        setView('setup');
-      } else {
+    void getMe()
+      .then((me) => {
+        if (me) {
+          setUsername(me.username);
+          setView('setup');
+        } else {
+          setView('login');
+        }
+      })
+      .catch(() => {
         setView('login');
-      }
-    });
+      });
   }, []);
 
   const handleLogin = (user: string) => {
@@ -570,7 +594,7 @@ function App() {
 
   return (
     <>
-      {view === 'loading' && <div className="setup-view" />}
+      {view === 'loading' && <LoadingView />}
       {view === 'login' && <LoginView onLogin={handleLogin} />}
       {view === 'setup' && <SetupView onStart={handleStart} username={username} onLogout={handleLogout} />}
       {view === 'chat' && <ChatView sessionId={sessionId} domain={domain} difficulty={difficulty} onEnd={handleEnd} />}

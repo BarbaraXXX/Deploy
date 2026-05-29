@@ -134,6 +134,32 @@ body {
   gap: var(--space-6);
 }
 
+.loading-panel {
+  width: min(100%, 420px);
+  padding: var(--space-8);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fadeSlideUp 0.5s ease-out;
+}
+
+.loading-panel h1 {
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.loading-panel p {
+  margin-top: var(--space-1);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
 @keyframes fadeSlideUp {
   from {
     opacity: 0;
@@ -821,7 +847,8 @@ body {
   .auth-intro,
   .auth-panel,
   .setup-panel,
-  .setup-overview {
+  .setup-overview,
+  .loading-panel {
     padding: var(--space-5);
   }
 
