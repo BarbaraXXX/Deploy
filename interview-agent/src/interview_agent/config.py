@@ -109,6 +109,8 @@ class ServerSettings(BaseSettings):
         extra="ignore",
     )
 
+    host: str = "0.0.0.0"
+    port: int = 8000
     cors_origins: str = "http://localhost:5173,http://localhost:8000"
 
     def get_cors_origins(self) -> list[str]:

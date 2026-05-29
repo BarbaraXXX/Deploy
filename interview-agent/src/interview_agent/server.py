@@ -400,4 +400,4 @@ def run() -> None:
     import uvicorn
 
     setup_logging()
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=server_settings.host, port=server_settings.port)

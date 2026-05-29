@@ -4,6 +4,7 @@ from interview_agent.config import (
     AuthSettings,
     LLMSettings,
     MCPSettings,
+    ServerSettings,
     VectorDBSettings,
 )
 
@@ -91,6 +92,22 @@ def test_vectordb_settings_default(monkeypatch):
     monkeypatch.delenv("VECTORDB_BASE_URL", raising=False)
     s = VectorDBSettings(_env_file=None)
     assert s.base_url == "http://localhost:9000"
+
+
+def test_server_settings_default(monkeypatch):
+    monkeypatch.delenv("SERVER_HOST", raising=False)
+    monkeypatch.delenv("SERVER_PORT", raising=False)
+    s = ServerSettings(_env_file=None)
+    assert s.host == "0.0.0.0"
+    assert s.port == 8000
+
+
+def test_server_settings_from_env(monkeypatch):
+    monkeypatch.setenv("SERVER_HOST", "127.0.0.1")
+    monkeypatch.setenv("SERVER_PORT", "8001")
+    s = ServerSettings(_env_file=None)
+    assert s.host == "127.0.0.1"
+    assert s.port == 8001
 
 
 def test_mcp_settings_default(monkeypatch):
